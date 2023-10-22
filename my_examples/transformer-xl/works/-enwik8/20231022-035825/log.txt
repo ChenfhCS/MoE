@@ -1,0 +1,150 @@
+====================================================================================================
+    - data : ../data/enwik8/
+    - dataset : enwik8
+    - n_layer : 12
+    - n_head : 8
+    - d_head : 64
+    - d_embed : 512
+    - d_model : 512
+    - d_inner : 2048
+    - dropout : 0.1
+    - dropatt : 0.0
+    - init : normal
+    - emb_init : normal
+    - init_range : 0.1
+    - emb_init_range : 0.01
+    - init_std : 0.02
+    - proj_init_std : 0.01
+    - optim : adam
+    - lr : 0.00025
+    - mom : 0.0
+    - scheduler : cosine
+    - warmup_step : 0
+    - decay_rate : 0.5
+    - lr_min : 0.0
+    - clip : 0.25
+    - clip_nonemb : False
+    - max_step : 400000
+    - batch_size : 2
+    - batch_chunk : 1
+    - tgt_len : 512
+    - eval_tgt_len : 128
+    - ext_len : 0
+    - mem_len : 512
+    - not_tied : False
+    - seed : 1111
+    - cuda : True
+    - adaptive : False
+    - div_val : 1
+    - pre_lnorm : False
+    - varlen : False
+    - multi_gpu : True
+    - expert_parallel : True
+    - log_interval : 10
+    - eval_interval : 4000
+    - work_dir : works/-enwik8/20231022-035825
+    - restart : False
+    - restart_dir : 
+    - debug : False
+    - same_length : False
+    - attn_type : 0
+    - clamp_len : -1
+    - eta_min : 0.0
+    - gpu0_bsz : 4
+    - max_eval_steps : -1
+    - sample_softmax : -1
+    - patience : 0
+    - finetune_v2 : False
+    - finetune_v3 : False
+    - fp16 : False
+    - static_loss_scale : 1
+    - dynamic_loss_scale : False
+    - moe : True
+    - moe_num_expert : 4
+    - moe_top_k : 2
+    - local_rank : 0
+    - fuse_token : True
+    - tied : True
+    - n_token : 204
+    - n_all_param : 116669692
+    - n_nonemb_param : 116564016
+====================================================================================================
+#params = 116669692
+#non emb params = 116564016
+| epoch   1 step       10 |     10 batches | lr 0.00025 | ms/batch 506.08 | loss  4.13 | bpc   5.96164
+| epoch   1 step       20 |     20 batches | lr 0.00025 | ms/batch 522.40 | loss  3.26 | bpc   4.70064
+| epoch   1 step       30 |     30 batches | lr 0.00025 | ms/batch 524.75 | loss  2.83 | bpc   4.07688
+| epoch   1 step       40 |     40 batches | lr 0.00025 | ms/batch 526.08 | loss  2.76 | bpc   3.98828
+| epoch   1 step       50 |     50 batches | lr 0.00025 | ms/batch 527.41 | loss  2.77 | bpc   3.99434
+| epoch   1 step       60 |     60 batches | lr 0.00025 | ms/batch 519.23 | loss  3.64 | bpc   5.25017
+| epoch   1 step       70 |     70 batches | lr 0.00025 | ms/batch 516.24 | loss  3.42 | bpc   4.93295
+| epoch   1 step       80 |     80 batches | lr 0.00025 | ms/batch 518.57 | loss  3.43 | bpc   4.94654
+| epoch   1 step       90 |     90 batches | lr 0.00025 | ms/batch 523.88 | loss  3.23 | bpc   4.65274
+| epoch   1 step      100 |    100 batches | lr 0.00025 | ms/batch 525.27 | loss  2.99 | bpc   4.31602 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99]
+| epoch   1 step      110 |    110 batches | lr 0.00025 | ms/batch 527.39 | loss  3.12 | bpc   4.49918
+| epoch   1 step      120 |    120 batches | lr 0.00025 | ms/batch 527.50 | loss  2.97 | bpc   4.28717
+| epoch   1 step      130 |    130 batches | lr 0.00025 | ms/batch 530.26 | loss  3.16 | bpc   4.56186
+| epoch   1 step      140 |    140 batches | lr 0.00025 | ms/batch 528.35 | loss  2.96 | bpc   4.26429
+| epoch   1 step      150 |    150 batches | lr 0.00025 | ms/batch 528.72 | loss  2.80 | bpc   4.03912
+| epoch   1 step      160 |    160 batches | lr 0.00025 | ms/batch 528.82 | loss  2.81 | bpc   4.04955
+| epoch   1 step      170 |    170 batches | lr 0.00025 | ms/batch 529.37 | loss  2.62 | bpc   3.78610
+| epoch   1 step      180 |    180 batches | lr 0.00025 | ms/batch 530.67 | loss  2.86 | bpc   4.12077
+| epoch   1 step      190 |    190 batches | lr 0.00025 | ms/batch 529.89 | loss  2.55 | bpc   3.67594
+| epoch   1 step      200 |    200 batches | lr 0.00025 | ms/batch 530.74 | loss  2.51 | bpc   3.61469 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51]
+| epoch   1 step      210 |    210 batches | lr 0.00025 | ms/batch 529.58 | loss  2.72 | bpc   3.92616
+| epoch   1 step      220 |    220 batches | lr 0.00025 | ms/batch 529.48 | loss  2.94 | bpc   4.24298
+| epoch   1 step      230 |    230 batches | lr 0.00025 | ms/batch 528.97 | loss  2.79 | bpc   4.02727
+| epoch   1 step      240 |    240 batches | lr 0.00025 | ms/batch 528.92 | loss  2.61 | bpc   3.77256
+| epoch   1 step      250 |    250 batches | lr 0.00025 | ms/batch 528.41 | loss  2.50 | bpc   3.60821
+| epoch   1 step      260 |    260 batches | lr 0.00025 | ms/batch 527.79 | loss  2.72 | bpc   3.92977
+| epoch   1 step      270 |    270 batches | lr 0.00025 | ms/batch 528.58 | loss  2.50 | bpc   3.60118
+| epoch   1 step      280 |    280 batches | lr 0.00025 | ms/batch 528.80 | loss  2.67 | bpc   3.84571
+| epoch   1 step      290 |    290 batches | lr 0.00025 | ms/batch 528.57 | loss  2.14 | bpc   3.09302
+| epoch   1 step      300 |    300 batches | lr 0.00025 | ms/batch 528.15 | loss  1.92 | bpc   2.76880 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51, 2.72, 2.94, 2.79, 2.61, 2.5, 2.72, 2.5, 2.67, 2.14, 1.92]
+| epoch   1 step      310 |    310 batches | lr 0.00025 | ms/batch 528.51 | loss  1.82 | bpc   2.61865
+| epoch   1 step      320 |    320 batches | lr 0.00025 | ms/batch 528.54 | loss  2.02 | bpc   2.90799
+| epoch   1 step      330 |    330 batches | lr 0.00025 | ms/batch 528.09 | loss  2.51 | bpc   3.62365
+| epoch   1 step      340 |    340 batches | lr 0.00025 | ms/batch 528.33 | loss  2.33 | bpc   3.36696
+| epoch   1 step      350 |    350 batches | lr 0.00025 | ms/batch 528.41 | loss  2.35 | bpc   3.38958
+| epoch   1 step      360 |    360 batches | lr 0.00025 | ms/batch 527.91 | loss  2.33 | bpc   3.36039
+| epoch   1 step      370 |    370 batches | lr 0.00025 | ms/batch 530.07 | loss  2.51 | bpc   3.61399
+| epoch   1 step      380 |    380 batches | lr 0.00025 | ms/batch 527.84 | loss  2.44 | bpc   3.51459
+| epoch   1 step      390 |    390 batches | lr 0.00025 | ms/batch 527.49 | loss  2.62 | bpc   3.77501
+| epoch   1 step      400 |    400 batches | lr 0.00025 | ms/batch 527.82 | loss  2.40 | bpc   3.46851 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51, 2.72, 2.94, 2.79, 2.61, 2.5, 2.72, 2.5, 2.67, 2.14, 1.92, 1.82, 2.02, 2.51, 2.33, 2.35, 2.33, 2.51, 2.44, 2.62, 2.4]
+| epoch   1 step      410 |    410 batches | lr 0.00025 | ms/batch 527.53 | loss  2.31 | bpc   3.33891
+| epoch   1 step      420 |    420 batches | lr 0.00025 | ms/batch 527.98 | loss  2.23 | bpc   3.21698
+| epoch   1 step      430 |    430 batches | lr 0.00025 | ms/batch 527.87 | loss  2.51 | bpc   3.61843
+| epoch   1 step      440 |    440 batches | lr 0.00025 | ms/batch 528.02 | loss  2.23 | bpc   3.21394
+| epoch   1 step      450 |    450 batches | lr 0.00025 | ms/batch 528.22 | loss  2.33 | bpc   3.36622
+| epoch   1 step      460 |    460 batches | lr 0.00025 | ms/batch 528.57 | loss  2.37 | bpc   3.42163
+| epoch   1 step      470 |    470 batches | lr 0.00025 | ms/batch 528.31 | loss  2.23 | bpc   3.21110
+| epoch   1 step      480 |    480 batches | lr 0.00025 | ms/batch 529.31 | loss  2.39 | bpc   3.44092
+| epoch   1 step      490 |    490 batches | lr 0.00025 | ms/batch 528.76 | loss  2.18 | bpc   3.14104
+| epoch   1 step      500 |    500 batches | lr 0.00025 | ms/batch 528.46 | loss  2.13 | bpc   3.06883 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51, 2.72, 2.94, 2.79, 2.61, 2.5, 2.72, 2.5, 2.67, 2.14, 1.92, 1.82, 2.02, 2.51, 2.33, 2.35, 2.33, 2.51, 2.44, 2.62, 2.4, 2.31, 2.23, 2.51, 2.23, 2.33, 2.37, 2.23, 2.39, 2.18, 2.13]
+| epoch   1 step      510 |    510 batches | lr 0.00025 | ms/batch 529.12 | loss  2.18 | bpc   3.14482
+| epoch   1 step      520 |    520 batches | lr 0.00025 | ms/batch 529.16 | loss  2.17 | bpc   3.12739
+| epoch   1 step      530 |    530 batches | lr 0.00025 | ms/batch 528.79 | loss  2.11 | bpc   3.05119
+| epoch   1 step      540 |    540 batches | lr 0.00025 | ms/batch 529.11 | loss  2.12 | bpc   3.05992
+| epoch   1 step      550 |    550 batches | lr 0.00025 | ms/batch 529.42 | loss  2.26 | bpc   3.25747
+| epoch   1 step      560 |    560 batches | lr 0.00025 | ms/batch 529.83 | loss  2.10 | bpc   3.03363
+| epoch   1 step      570 |    570 batches | lr 0.00025 | ms/batch 530.00 | loss  2.18 | bpc   3.14278
+| epoch   1 step      580 |    580 batches | lr 0.00025 | ms/batch 529.56 | loss  2.24 | bpc   3.23674
+| epoch   1 step      590 |    590 batches | lr 0.00025 | ms/batch 529.03 | loss  2.19 | bpc   3.16051
+| epoch   1 step      600 |    600 batches | lr 0.00025 | ms/batch 528.42 | loss  2.15 | bpc   3.09930 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51, 2.72, 2.94, 2.79, 2.61, 2.5, 2.72, 2.5, 2.67, 2.14, 1.92, 1.82, 2.02, 2.51, 2.33, 2.35, 2.33, 2.51, 2.44, 2.62, 2.4, 2.31, 2.23, 2.51, 2.23, 2.33, 2.37, 2.23, 2.39, 2.18, 2.13, 2.18, 2.17, 2.11, 2.12, 2.26, 2.1, 2.18, 2.24, 2.19, 2.15]
+| epoch   1 step      610 |    610 batches | lr 0.00025 | ms/batch 530.42 | loss  2.00 | bpc   2.88645
+| epoch   1 step      620 |    620 batches | lr 0.00025 | ms/batch 528.30 | loss  2.00 | bpc   2.88603
+| epoch   1 step      630 |    630 batches | lr 0.00025 | ms/batch 528.02 | loss  2.02 | bpc   2.91767
+| epoch   1 step      640 |    640 batches | lr 0.00025 | ms/batch 528.34 | loss  2.07 | bpc   2.98371
+| epoch   1 step      650 |    650 batches | lr 0.00025 | ms/batch 527.87 | loss  2.15 | bpc   3.10718
+| epoch   1 step      660 |    660 batches | lr 0.00025 | ms/batch 527.95 | loss  2.28 | bpc   3.29640
+| epoch   1 step      670 |    670 batches | lr 0.00025 | ms/batch 528.08 | loss  2.21 | bpc   3.18879
+| epoch   1 step      680 |    680 batches | lr 0.00025 | ms/batch 528.06 | loss  1.92 | bpc   2.77187
+| epoch   1 step      690 |    690 batches | lr 0.00025 | ms/batch 528.47 | loss  1.67 | bpc   2.41594
+| epoch   1 step      700 |    700 batches | lr 0.00025 | ms/batch 528.06 | loss  2.23 | bpc   3.21456 | current losses [4.13, 3.26, 2.83, 2.76, 2.77, 3.64, 3.42, 3.43, 3.23, 2.99, 3.12, 2.97, 3.16, 2.96, 2.8, 2.81, 2.62, 2.86, 2.55, 2.51, 2.72, 2.94, 2.79, 2.61, 2.5, 2.72, 2.5, 2.67, 2.14, 1.92, 1.82, 2.02, 2.51, 2.33, 2.35, 2.33, 2.51, 2.44, 2.62, 2.4, 2.31, 2.23, 2.51, 2.23, 2.33, 2.37, 2.23, 2.39, 2.18, 2.13, 2.18, 2.17, 2.11, 2.12, 2.26, 2.1, 2.18, 2.24, 2.19, 2.15, 2.0, 2.0, 2.02, 2.07, 2.15, 2.28, 2.21, 1.92, 1.67, 2.23]
+| epoch   1 step      710 |    710 batches | lr 0.00025 | ms/batch 528.47 | loss  1.85 | bpc   2.66915
+| epoch   1 step      720 |    720 batches | lr 0.00025 | ms/batch 527.92 | loss  2.03 | bpc   2.93193
+| epoch   1 step      730 |    730 batches | lr 0.00025 | ms/batch 527.13 | loss  2.09 | bpc   3.01760
+| epoch   1 step      740 |    740 batches | lr 0.00025 | ms/batch 527.77 | loss  1.90 | bpc   2.74077
+| epoch   1 step      750 |    750 batches | lr 0.00025 | ms/batch 528.28 | loss  1.97 | bpc   2.84260
+----------------------------------------------------------------------------------------------------
+Exiting from training early
