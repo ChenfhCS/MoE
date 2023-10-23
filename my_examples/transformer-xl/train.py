@@ -19,8 +19,8 @@ from utils.data_parallel import BalancedDataParallel
 import torch.distributed as dist
 from fmoe.distributed import DistributedGroupedDataParallel as DDP
 
-os.environ['MASTER_ADDR'] = '172.31.9.143'
-os.environ['MASTER_PORT'] = '1234'
+# os.environ['MASTER_ADDR'] = '172.31.9.143'
+# os.environ['MASTER_PORT'] = '1234'
 
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
