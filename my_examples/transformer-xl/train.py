@@ -19,6 +19,9 @@ from utils.data_parallel import BalancedDataParallel
 import torch.distributed as dist
 from fmoe.distributed import DistributedGroupedDataParallel as DDP
 
+os.environ['MASTER_ADDR'] = '172.31.9.143'
+os.environ['MASTER_PORT'] = '1234'
+
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
                     help='location of the data corpus')
@@ -170,19 +173,22 @@ assert args.batch_size % args.batch_chunk == 0
 # set environment
 device = torch.device('cuda' if args.cuda else 'cpu')
 if args.expert_parallel:
-    rank = int(os.environ["RANK"])
+    global_rank = int(os.environ["RANK"])
+    local_rank = int(os.environ["LOCAL_RANK"])
     world_size = int(os.environ['WORLD_SIZE'])
-    torch.cuda.set_device(rank)
+    # rank = dist.get_rank()
+    # world_size = dist.get_world_size()
+    torch.cuda.set_device(local_rank)
 else:
-    rank = 0
+    local_rank = 0
+    global_rank = 0
     world_size = 1
 
-if rank == 0:
-    print("Set environment complete!")
+print("GPU {}/{} set environment complete!".format(global_rank, world_size))
 
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
 args.work_dir = os.path.join(args.work_dir, time.strftime('%Y%m%d-%H%M%S'))
-if rank == 0:
+if local_rank == 0:
     logging = create_exp_dir(args.work_dir,
         scripts_to_save=['train.py', 'mem_transformer.py'], debug=args.debug)
 
@@ -223,7 +229,7 @@ va_iter = corpus.get_iterator('valid', eval_batch_size, args.eval_tgt_len,
 te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
     device=device, ext_len=args.ext_len)
 
-if rank == 0:
+if local_rank == 0:
     print("Load dataset complete!")
 
 # adaptive softmax / embedding
@@ -319,7 +325,7 @@ else:
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
 args.n_nonemb_param = sum([p.nelement() for p in model.layers.parameters()])
 
-if rank == 0:
+if local_rank == 0:
     print("Model initialization complete!")
 
 if args.fp16:
@@ -336,13 +342,17 @@ if args.fp16:
 #     para_model = model.to(device)
 if args.multi_gpu:
     if args.expert_parallel:
-        model.cuda(rank)
+        model.cuda(local_rank)
+        if local_rank == 0:
+            print("Before initialize distributed group!")
         dist.init_process_group(backend='nccl',
                                 # init_method='tcp://127.0.0.1:8000',
                                 init_method='env://',
                                 world_size=world_size,
-                                rank=rank)
-        para_model = DDP(model, device_ids=[rank])
+                                rank=global_rank)
+        if local_rank == 0:
+            print("After initialize distributed group!")
+        para_model = DDP(model, device_ids=[local_rank])
     else:
         if args.gpu0_bsz >= 0:
             para_model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
@@ -352,7 +362,7 @@ if args.multi_gpu:
 else:
     para_model = model.to(device)
 
-if rank == 0:
+if local_rank == 0:
     print("Model to device complete!")
 
 #### optimizer
@@ -429,10 +439,10 @@ if args.restart:
     else:
         print('Optimizer was not saved. Start from scratch.')
 
-if rank == 0:
+if local_rank == 0:
     print("Optimizer initialization complete!")
 
-if rank == 0:
+if local_rank == 0:
     logging('=' * 100)
     for k, v in args.__dict__.items():
         logging('    - {} : {}'.format(k, v))
@@ -554,7 +564,7 @@ def train():
             scheduler.step(train_step)
 
         if train_step % args.log_interval == 0:
-            if rank == 0:
+            if local_rank == 0:
                 cur_loss = train_loss / args.log_interval
                 elapsed = time.time() - log_start_time
                 log_str = '| epoch {:3d} step {:>8d} | {:>6d} batches | lr {:.3g} ' \
@@ -573,7 +583,7 @@ def train():
             train_loss = 0
 
         if train_step % args.eval_interval == 0:
-            if rank == 0:
+            if local_rank == 0:
                 val_loss = evaluate(va_iter)
                 logging('-' * 100)
                 log_str = '| Eval {:3d} at step {:>8d} | time: {:5.2f}s ' \
@@ -621,16 +631,16 @@ try:
     for epoch in itertools.count(start=1):
         train()
         if train_step == args.max_step:
-            if rank == 0:
+            if local_rank == 0:
                 logging('-' * 100)
                 logging('End of training')
             break
 except KeyboardInterrupt:
-    if rank == 0:
+    if local_rank == 0:
         logging('-' * 100)
         logging('Exiting from training early')
 
-if rank == 0:
+if local_rank == 0:
     # Load the best saved model.
     with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
         model = torch.load(f)
