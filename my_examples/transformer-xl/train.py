@@ -115,7 +115,7 @@ parser.add_argument('--expert_parallel', action='store_true',
                     help='expert parallel')
 parser.add_argument('--log-interval', type=int, default=10,
                     help='report interval')
-parser.add_argument('--eval-interval', type=int, default=4000,
+parser.add_argument('--eval-interval', type=int, default=100,
                     help='evaluation interval')
 parser.add_argument('--work_dir', default='LM-TFM', type=str,
                     help='experiment directory.')
@@ -513,6 +513,7 @@ def train():
         mems = tuple()
     train_iter = tr_iter.get_varlen_iter() if args.varlen else tr_iter
     for batch, (data, target, seq_len) in enumerate(train_iter):
+        total_fusion_costs = 0
         model.zero_grad()
         if args.batch_chunk > 1:
             data_chunks = torch.chunk(data, args.batch_chunk, 1)
@@ -520,7 +521,7 @@ def train():
             for i in range(args.batch_chunk):
                 data_i = data_chunks[i].contiguous()
                 target_i = target_chunks[i].contiguous()
-                ret = model(data_i, target_i, *mems[i])
+                ret, fusion_costs = model(data_i, target_i, *mems[i])
                 loss, mems[i] = ret[0], ret[1:]
                 loss = loss.float().mean().type_as(loss) / args.batch_chunk
                 if args.fp16:
@@ -528,8 +529,9 @@ def train():
                 else:
                     loss.backward()
                 train_loss += loss.float().item()
+                total_fusion_costs += fusion_costs
         else:
-            ret = model(data, target, train_step, *mems)
+            ret, fusion_costs = model(data, target, train_step, *mems)
             loss, mems = ret[0], ret[1:]
             loss = loss.float().mean().type_as(loss)
             if args.fp16:
@@ -537,6 +539,7 @@ def train():
             else:
                 loss.backward()
             train_loss += loss.float().item()
+            total_fusion_costs += fusion_costs
 
         if args.fp16:
             optimizer.clip_master_grads(args.clip)
@@ -573,9 +576,9 @@ def train():
                 cur_loss = train_loss / args.log_interval
                 elapsed = time.time() - log_start_time
                 log_str = '| epoch {:3d} step {:>8d} | {:>6d} batches | lr {:.3g} ' \
-                        '| ms/batch {:5.2f} | loss {:5.2f}'.format(
+                        '| ms/batch {:5.2f} | loss {:5.2f} | fusion costs {:5.2f}'.format(
                     epoch, train_step, batch+1, optimizer.param_groups[0]['lr'],
-                    elapsed * 1000 / args.log_interval, cur_loss)
+                    elapsed * 1000 / args.log_interval, cur_loss, total_fusion_costs*1000)
                 if args.dataset in ['enwik8', 'text8']:
                     log_str += ' | bpc {:9.5f}'.format(cur_loss / math.log(2))
                 else:
@@ -586,6 +589,7 @@ def train():
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
+            total_fusion_costs = 0
 
         if train_step % args.eval_interval == 0:
             if local_rank == 0:
@@ -617,6 +621,7 @@ def train():
                         scheduler_sparse.step(val_loss)
 
                 eval_start_time = time.time()
+            
 
         if train_step == args.max_step:
             break

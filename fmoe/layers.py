@@ -405,4 +405,4 @@ class FMoE(nn.Module):
         #     gate_top_k_idx = gate_top_k_idx_temp
         #     time_costs += time.time() - time_start
         # # print('output size: ', moe_outp.size())
-        return moe_outp
+        return moe_outp, time_costs
