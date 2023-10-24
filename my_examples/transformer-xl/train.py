@@ -17,8 +17,7 @@ from utils.exp_utils import create_exp_dir
 from utils.data_parallel import BalancedDataParallel
 
 import torch.distributed as dist
-import torch.nn.parallel.DistributedDataParallel as DDP
-# from fmoe.distributed import DistributedGroupedDataParallel as DDP
+from fmoe.distributed import DistributedGroupedDataParallel as DDP
 
 # os.environ['MASTER_ADDR'] = '172.31.9.143'
 # os.environ['MASTER_PORT'] = '2345'
@@ -357,7 +356,8 @@ if args.multi_gpu:
                                 rank=global_rank)
         if local_rank == 0:
             print("After initialize distributed group!")
-        model = DDP(model, device_ids=[local_rank])
+        # model = DDP(model, device_ids=[local_rank])
+        model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
         # model.cuda(local_rank)
     else:
         if args.gpu0_bsz >= 0:
