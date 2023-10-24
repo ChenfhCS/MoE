@@ -22,6 +22,14 @@ from fmoe.distributed import DistributedGroupedDataParallel as DDP
 # os.environ['MASTER_ADDR'] = '172.31.9.143'
 # os.environ['MASTER_PORT'] = '2345'
 
+import signal
+
+def signal_handler(signum, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
                     help='location of the data corpus')
@@ -184,7 +192,7 @@ else:
     global_rank = 0
     world_size = 1
 
-print("GPU {}/{} set environment complete!".format(global_rank, world_size))
+print("GPU {}/{} set environment complete!".format(global_rank+1, world_size))
 
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
 args.work_dir = os.path.join(args.work_dir, time.strftime('%Y%m%d-%H%M%S'))
