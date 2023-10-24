@@ -197,8 +197,7 @@ print("GPU {}/{} set environment complete!".format(global_rank+1, world_size))
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
 args.work_dir = os.path.join(args.work_dir, time.strftime('%Y%m%d-%H%M%S'))
 if local_rank == 0:
-    logging = create_exp_dir(args.work_dir,
-        scripts_to_save=['train.py', 'mem_transformer.py'], debug=args.debug)
+    logging = create_exp_dir(args.work_dir, debug=args.debug)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
