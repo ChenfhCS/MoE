@@ -22,6 +22,11 @@ from fmoe.distributed import DistributedGroupedDataParallel as DDP
 # os.environ['MASTER_ADDR'] = '172.31.9.143'
 # os.environ['MASTER_PORT'] = '2345'
 
+import warnings
+
+# 忽略所有UserWarning
+warnings.simplefilter(action='ignore', category=Warning)
+
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
                     help='location of the data corpus')
