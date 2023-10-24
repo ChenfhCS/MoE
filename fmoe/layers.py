@@ -254,6 +254,7 @@ class FMoE(nn.Module):
         num_experts = 8
         # print(train_step)
         if fuse_token == True and train_step > start_step:
+            print('fuse tokens!')
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
             # fuse inputs and gates
