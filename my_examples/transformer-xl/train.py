@@ -465,12 +465,13 @@ def evaluate(eval_iter):
 
     # If the model does not use memory at all, make the ext_len longer.
     # Otherwise, make the mem_len longer and keep the ext_len the same.
-    if args.mem_len == 0:
-        model.reset_length(args.eval_tgt_len,
-            args.ext_len+args.tgt_len-args.eval_tgt_len, args.mem_len)
-    else:
-        model.reset_length(args.eval_tgt_len,
-            args.ext_len, args.mem_len+args.tgt_len-args.eval_tgt_len)
+
+    # if args.mem_len == 0:
+    #     model.reset_length(args.eval_tgt_len,
+    #         args.ext_len+args.tgt_len-args.eval_tgt_len, args.mem_len)
+    # else:
+    #     model.reset_length(args.eval_tgt_len,
+    #         args.ext_len, args.mem_len+args.tgt_len-args.eval_tgt_len)
 
     # Evaluation
     total_len, total_loss = 0, 0.
@@ -486,7 +487,7 @@ def evaluate(eval_iter):
             total_len += seq_len
 
     # Switch back to the training mode
-    model.reset_length(args.tgt_len, args.ext_len, args.mem_len)
+    # model.reset_length(args.tgt_len, args.ext_len, args.mem_len)
     model.train()
 
     return total_loss / total_len
