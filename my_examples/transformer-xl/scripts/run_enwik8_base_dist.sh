@@ -2,7 +2,7 @@
 
 if [[ $1 == 'train' ]]; then
     echo 'Run training...'
-    python -m torch.distributed.launch --nproc_per_node=4 --nnodes=2 --node_rank=0 --master_addr="172.31.9.143"  --master_port=2345 train.py \
+    torchrun --nproc_per_node 4 --nnodes 2 --node_rank 0 --master_addr "172.31.9.143" --master_port 1235 train.py \
         --cuda \
         --data ../data/enwik8/ \
         --dataset enwik8 \
@@ -22,7 +22,7 @@ if [[ $1 == 'train' ]]; then
         --eval_tgt_len 128 \
         --batch_size 2 \
         --multi_gpu \
-        --moe --moe-num-expert 4 --moe-top-k 2 \
+        --moe --moe-num-expert 8 --moe-top-k 2 \
         --expert_parallel \
         --gpu0_bsz 4 \
         ${@:2}
