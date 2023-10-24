@@ -251,13 +251,13 @@ class FMoE(nn.Module):
         top_k_value = 2
         time_costs = 0
         start_step =10
+        num_experts = 8
         # print(train_step)
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
             # fuse inputs and gates
             batch_size = original_shape[1]
-            num_experts = 4
             num_token_per_input = original_shape[0]
             # output_temp = moe_inp.clone().detach().unsqueeze(1)
             output_temp = torch.zeros(moe_inp.size(0), top_k_value, moe_inp.size(1), dtype=torch.float32).to(gate_top_k_idx.device)
