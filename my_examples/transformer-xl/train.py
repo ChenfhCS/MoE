@@ -346,7 +346,7 @@ if args.fp16:
 #     para_model = model.to(device)
 if args.multi_gpu:
     if args.expert_parallel:
-        model.cuda(local_rank)
+        # model.cuda(local_rank)
         if local_rank == 0:
             print("Before initialize distributed group!")
         dist.init_process_group(backend='nccl',
@@ -356,7 +356,7 @@ if args.multi_gpu:
                                 rank=global_rank)
         if local_rank == 0:
             print("After initialize distributed group!")
-        para_model = DDP(model, device_ids=[local_rank])
+        para_model = DDP(model, device_ids=[local_rank]).to(device)
     else:
         if args.gpu0_bsz >= 0:
             para_model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
