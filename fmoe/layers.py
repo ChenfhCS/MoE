@@ -250,7 +250,7 @@ class FMoE(nn.Module):
         # print('input size: ', moe_inp.size())
         top_k_value = 2
         time_costs = 0
-        start_step =10
+        start_step =0
         num_experts = 8
         # print(train_step)
         if fuse_token == True and train_step > start_step:
