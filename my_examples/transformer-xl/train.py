@@ -338,12 +338,12 @@ if args.fp16:
 # if args.multi_gpu:
 #     model = model.to(device)
 #     if args.gpu0_bsz >= 0:
-#         para_model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
+#         model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
 #                                           model, dim=1).to(device)
 #     else:
-#         para_model = nn.DataParallel(model, dim=1).to(device)
+#         model = nn.DataParallel(model, dim=1).to(device)
 # else:
-#     para_model = model.to(device)
+#     model = model.to(device)
 if args.multi_gpu:
     if args.expert_parallel:
         # model.cuda(local_rank)
@@ -356,16 +356,16 @@ if args.multi_gpu:
                                 rank=global_rank)
         if local_rank == 0:
             print("After initialize distributed group!")
-        para_model = DDP(model, device_ids=[local_rank])
-        para_model.cuda(local_rank)
+        model = DDP(model, device_ids=[local_rank])
+        model.cuda(local_rank)
     else:
         if args.gpu0_bsz >= 0:
-            para_model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
+            model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
                                             model, dim=1).to(device)
         else:
-            para_model = nn.DataParallel(model, dim=1).to(device)
+            model = nn.DataParallel(model, dim=1).to(device)
 else:
-    para_model = model.to(device)
+    model = model.to(device)
 
 if local_rank == 0:
     print("Model to device complete!")
@@ -463,12 +463,12 @@ def evaluate(eval_iter):
     if args.multi_gpu:
         model = model.to(device)
         if args.gpu0_bsz >= 0:
-            para_model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
+            model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
                                             model, dim=1).to(device)
         else:
-            para_model = nn.DataParallel(model, dim=1).to(device)
+            model = nn.DataParallel(model, dim=1).to(device)
     else:
-        para_model = model.to(device)
+        model = model.to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
@@ -520,7 +520,7 @@ def train():
             for i in range(args.batch_chunk):
                 data_i = data_chunks[i].contiguous()
                 target_i = target_chunks[i].contiguous()
-                ret = para_model(data_i, target_i, *mems[i])
+                ret = model(data_i, target_i, *mems[i])
                 loss, mems[i] = ret[0], ret[1:]
                 loss = loss.float().mean().type_as(loss) / args.batch_chunk
                 if args.fp16:
@@ -529,7 +529,7 @@ def train():
                     loss.backward()
                 train_loss += loss.float().item()
         else:
-            ret = para_model(data, target, train_step, *mems)
+            ret = model(data, target, train_step, *mems)
             loss, mems = ret[0], ret[1:]
             loss = loss.float().mean().type_as(loss)
             if args.fp16:
@@ -545,7 +545,7 @@ def train():
 
         # expert parallel
         if args.expert_parallel:
-            para_model.allreduce_params()
+            model.allreduce_params()
 
         optimizer.step()
         if args.sample_softmax > 0:
@@ -649,7 +649,7 @@ if local_rank == 0:
     # Load the best saved model.
     with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
         model = torch.load(f)
-    para_model = model.to(device)
+    model = model.to(device)
 
     # Run on test data.
     test_loss = evaluate(te_iter)
