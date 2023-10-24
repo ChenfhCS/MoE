@@ -323,7 +323,7 @@ else:
         ext_len=args.ext_len, mem_len=args.mem_len, cutoffs=cutoffs,
         same_length=args.same_length, attn_type=args.attn_type,
         clamp_len=args.clamp_len, sample_softmax=args.sample_softmax,
-        moe=args.moe, moe_num_expert=args.moe_num_expert, moe_top_k=args.moe_top_k, fuse_token=args.fuse_token)
+        moe=args.moe, moe_num_expert=args.moe_num_expert // world_size, moe_top_k=args.moe_top_k, fuse_token=args.fuse_token)
     model.apply(weights_init)
     model.word_emb.apply(weights_init) # ensure embedding init is not overridden by out_layer in case of weight sharing
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
@@ -356,8 +356,8 @@ if args.multi_gpu:
                                 rank=global_rank)
         if local_rank == 0:
             print("After initialize distributed group!")
-        # model = DDP(model, device_ids=[local_rank])
-        model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
+        model = DDP(model, device_ids=[local_rank])
+        # model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
         # model.cuda(local_rank)
     else:
         if args.gpu0_bsz >= 0:

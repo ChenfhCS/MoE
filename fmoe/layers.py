@@ -251,7 +251,7 @@ class FMoE(nn.Module):
         top_k_value = 2
         time_costs = 0
         start_step =0
-        num_experts = 8
+        num_experts = 64
         # print(train_step)
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
