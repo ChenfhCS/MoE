@@ -346,7 +346,7 @@ if args.fp16:
 #     para_model = model.to(device)
 if args.multi_gpu:
     if args.expert_parallel:
-        model.cuda(local_rank)
+        # model.cuda(local_rank)
         if local_rank == 0:
             print("Before initialize distributed group!")
         dist.init_process_group(backend='nccl',
