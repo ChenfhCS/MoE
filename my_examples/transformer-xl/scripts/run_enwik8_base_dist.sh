@@ -2,7 +2,7 @@
 
 if [[ $1 == 'train' ]]; then
     echo 'Run training...'
-    torchrun --nproc_per_node 4 --nnodes 2 --node_rank 0 --master_addr "172.31.9.143" --master_port 1235 train.py \
+    torchrun --nproc_per_node 4 --nnodes 2 --node_rank 0 --master_addr "172.31.9.143" --master_port 1238 train.py \
         --cuda \
         --data ../data/enwik8/ \
         --dataset enwik8 \

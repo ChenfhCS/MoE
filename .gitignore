@@ -31,3 +31,4 @@ my_examples/transformer-xl/works/
 setup.py
 diagnostics.py
 cuda/
+my_examples/transformer-xl/works/-enwik9/
