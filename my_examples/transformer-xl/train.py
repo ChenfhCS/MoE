@@ -460,16 +460,6 @@ if local_rank == 0:
 ###############################################################################
 
 def evaluate(eval_iter):
-    if args.multi_gpu:
-        model = model.to(device)
-        if args.gpu0_bsz >= 0:
-            model = BalancedDataParallel(args.gpu0_bsz // args.batch_chunk,
-                                            model, dim=1).to(device)
-        else:
-            model = nn.DataParallel(model, dim=1).to(device)
-    else:
-        model = model.to(device)
-
     # Turn on evaluation mode which disables dropout.
     model.eval()
 
