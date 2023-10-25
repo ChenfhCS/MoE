@@ -242,8 +242,8 @@ class FMoE(nn.Module):
             moe_inp = tree.map_structure(delete_mask_func, moe_inp)
             gate_top_k_idx = gate_top_k_idx[mask == 0, :]
 
-        # print('before fusion!')
-        # print("input size: ",moe_inp.size())
+        print('before fusion!')
+        print("input size: ",moe_inp.size())
         # print("gate outputs", gate_top_k_idx)
 
         # print('original shape: ', original_shape)
@@ -302,7 +302,8 @@ class FMoE(nn.Module):
         # delay = exchange_tensor_size/choose_bandwidth - exchange_tensor_size/origin_bandwidth
         # time.sleep(delay)
 
-        # print("input size: ",moe_inp.size())
+        print('after fusion!')
+        print("input size: ",moe_inp.size())
         # print("gate size: ", gate_top_k_idx.size())
 
         fwd = _fmoe_general_global_forward(
