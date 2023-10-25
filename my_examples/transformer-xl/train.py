@@ -494,7 +494,7 @@ def evaluate(eval_iter):
         for i, (data, target, seq_len) in enumerate(eval_iter):
             if args.max_eval_steps > 0 and i >= args.max_eval_steps:
                 break
-            ret = model(data, target, *mems)
+            ret, fusion_costs = model(data_i, target_i, *mems[i])
             loss, mems = ret[0], ret[1:]
             loss = loss.mean()
             total_loss += seq_len * loss.float().item()
