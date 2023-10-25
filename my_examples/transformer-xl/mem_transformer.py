@@ -472,10 +472,10 @@ class RelPartialLearnableDecoderLayer(nn.Module):
                                         pre_lnorm=kwargs.get('pre_lnorm'))
         else:
             self.pos_ff = CustomizedMoEPositionwiseFF(d_model, d_inner, dropout,
+                                        moe_world_size=moe_world_size,
+                                        moe_group=moe_group,
                                         pre_lnorm=kwargs.get('pre_lnorm'),
                                         moe_num_expert=kwargs.get('moe_num_expert'),
-                                        moe_world_size=kwargs.get('moe_world_size'),
-                                        moe_group=kwargs.get('moe_group'),
                                         moe_top_k=kwargs.get('moe_top_k'))
 
     def forward(self, dec_inp, r, r_w_bias, r_r_bias, dec_attn_mask=None, mems=None, fuse_token=False, train_step=0):
