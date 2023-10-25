@@ -54,7 +54,7 @@ class FMoETransformerMLP(FMoE):
             return _Expert(1, d_model, d_hidden, activation, rank=0)
         
         expert = one_expert
-        print("moe world size: ", world_size)
+        # print("moe world size: ", world_size)
         super().__init__(num_expert=num_expert, d_model=d_model, expert=expert, world_size=world_size, moe_group=moe_group, **kwargs)
         self.mark_parallel_comm(expert_dp_comm)
 
