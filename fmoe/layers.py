@@ -248,7 +248,7 @@ class FMoE(nn.Module):
 
         # print('original shape: ', original_shape)
         # print('input size: ', moe_inp.size())
-        top_k_value = 2
+        top_k_value = 4
         time_costs = 0
         start_step =0
         num_experts = 64
