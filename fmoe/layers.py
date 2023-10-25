@@ -244,7 +244,7 @@ class FMoE(nn.Module):
 
         # print('before fusion!')
         # print("input size: ",moe_inp.size())
-        print("gate outputs", gate_top_k_idx)
+        print("gate outputs", gate_top_k_idx[0])
 
         # print('original shape: ', original_shape)
         # print('input size: ', moe_inp.size())
