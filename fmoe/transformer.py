@@ -44,6 +44,8 @@ class FMoETransformerMLP(FMoE):
         d_model=1024,
         d_hidden=4096,
         activation=torch.nn.GELU(),
+        world_size=1,
+        moe_group=None,
         expert_dp_comm="none",
         expert_rank=0,
         **kwargs
@@ -52,7 +54,8 @@ class FMoETransformerMLP(FMoE):
             return _Expert(1, d_model, d_hidden, activation, rank=0)
         
         expert = one_expert
-        super().__init__(num_expert=num_expert, d_model=d_model, expert=expert, **kwargs)
+        print("moe world size: ", world_size)
+        super().__init__(num_expert=num_expert, d_model=d_model, expert=expert, world_size=world_size, moe_group=moe_group, **kwargs)
         self.mark_parallel_comm(expert_dp_comm)
 
     def forward(self, inp: torch.Tensor, fuse_token: bool, train_step: int):

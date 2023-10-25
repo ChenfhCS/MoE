@@ -189,7 +189,18 @@ else:
     global_rank = 0
     world_size = 1
 
-print("GPU {}/{} set environment complete!".format(global_rank+1, world_size))
+group_world_size = world_size #Within a group, all GPUs use expert parallel
+group_rank = global_rank // group_world_size # which expert parallel group the GPU belongs to 
+group_size = world_size // group_world_size # how many groups
+inner_group_rank = global_rank % group_world_size # which data parallel group the GPU belongs to
+
+# expert parallel group
+for j in range(group_size):
+    moe_comm_group_list = [i + group_world_size * j for i in range(group_world_size)]
+    group = torch.distributed.new_group(moe_comm_group_list)
+    if j == group_rank:
+        moe_comm_group = group
+        print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
 
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
 args.work_dir = os.path.join(args.work_dir, time.strftime('%Y%m%d-%H%M%S'))
@@ -217,7 +228,6 @@ if args.fp16:
             print('WARNING: apex not installed, ignoring --fp16 option')
             args.fp16 = False
 
-
 ###############################################################################
 # Load data
 ###############################################################################
@@ -232,9 +242,6 @@ va_iter = corpus.get_iterator('valid', eval_batch_size, args.eval_tgt_len,
     device=device, ext_len=args.ext_len)
 te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
     device=device, ext_len=args.ext_len)
-
-if local_rank == 0:
-    print("Load dataset complete!")
 
 # adaptive softmax / embedding
 cutoffs, tie_projs = [], [False]
@@ -323,14 +330,16 @@ else:
         ext_len=args.ext_len, mem_len=args.mem_len, cutoffs=cutoffs,
         same_length=args.same_length, attn_type=args.attn_type,
         clamp_len=args.clamp_len, sample_softmax=args.sample_softmax,
-        moe=args.moe, moe_num_expert=args.moe_num_expert // world_size, moe_top_k=args.moe_top_k, fuse_token=args.fuse_token)
+        moe=args.moe, moe_num_expert=args.moe_num_expert // world_size, 
+        moe_world_size=world_size, moe_group=moe_comm_group,
+        moe_top_k=args.moe_top_k, fuse_token=args.fuse_token)
     model.apply(weights_init)
     model.word_emb.apply(weights_init) # ensure embedding init is not overridden by out_layer in case of weight sharing
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
 args.n_nonemb_param = sum([p.nelement() for p in model.layers.parameters()])
 
 if local_rank == 0:
-    print("Model initialization complete!")
+    print("{}/{}: Model initialization complete!".format(global_rank, world_size))
 
 if args.fp16:
     model = model.half()
@@ -347,16 +356,20 @@ if args.fp16:
 if args.multi_gpu:
     if args.expert_parallel:
         model.cuda(local_rank)
-        if local_rank == 0:
-            print("Before initialize distributed group!")
         dist.init_process_group(backend='nccl',
                                 # init_method='tcp://127.0.0.1:8000',
                                 init_method='env://',
                                 world_size=world_size,
                                 rank=global_rank)
-        if local_rank == 0:
-            print("After initialize distributed group!")
-        model = DDP(model, device_ids=[local_rank])
+        # data parallel group
+        for j in range(group_world_size):
+            moe_sync_group_list = [j + group_size * i for i in range(group_size)]  # GPUs use the same experts (from different group) will share parameters
+            group = torch.distributed.new_group(moe_sync_group_list)
+            if j == inner_group_rank:
+                moe_sync_group = group
+                print("rank {}/{}, moe_sync_group list is {}".format(global_rank, world_size, moe_sync_group_list))
+        model = DDP(model, device_ids=[local_rank], moe_sync_group = moe_sync_group)
+        model._sync_params()
         # model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
         # model.cuda(local_rank)
     else:
@@ -368,8 +381,8 @@ if args.multi_gpu:
 else:
     model = model.to(device)
 
-if local_rank == 0:
-    print("Model to device complete!")
+# if local_rank == 0:
+#     print("Model to device complete!")
 
 #### optimizer
 if args.optim.lower() == 'sgd':
@@ -444,9 +457,6 @@ if args.restart:
             optimizer.load_state_dict(opt_state_dict)
     else:
         print('Optimizer was not saved. Start from scratch.')
-
-if local_rank == 0:
-    print("Optimizer initialization complete!")
 
 if local_rank == 0:
     logging('=' * 100)
