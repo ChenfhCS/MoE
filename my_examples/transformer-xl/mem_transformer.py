@@ -460,7 +460,7 @@ class RelLearnableDecoderLayer(nn.Module):
 
 # attention type == 0
 class RelPartialLearnableDecoderLayer(nn.Module):
-    def __init__(self, n_head, d_model, d_head, d_inner, dropout,
+    def __init__(self, n_head, d_model, d_head, d_inner, dropout, moe_world_size=1, moe_group=None,
                  **kwargs):
         super(RelPartialLearnableDecoderLayer, self).__init__()
 
