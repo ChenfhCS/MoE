@@ -115,7 +115,7 @@ parser.add_argument('--expert_parallel', action='store_true',
                     help='expert parallel')
 parser.add_argument('--log-interval', type=int, default=10,
                     help='report interval')
-parser.add_argument('--eval-interval', type=int, default=100,
+parser.add_argument('--eval-interval', type=int, default=3000,
                     help='evaluation interval')
 parser.add_argument('--work_dir', default='LM-TFM', type=str,
                     help='experiment directory.')
