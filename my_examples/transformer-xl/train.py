@@ -194,6 +194,15 @@ group_rank = global_rank // group_world_size # which expert parallel group the G
 group_size = world_size // group_world_size # how many groups
 inner_group_rank = global_rank % group_world_size # which data parallel group the GPU belongs to
 
+if args.multi_gpu:
+    if args.expert_parallel:
+        model.cuda(local_rank)
+        dist.init_process_group(backend='nccl',
+                                # init_method='tcp://127.0.0.1:8000',
+                                init_method='env://',
+                                world_size=world_size,
+                                rank=global_rank)
+
 # expert parallel group
 for j in range(group_size):
     moe_comm_group_list = [i + group_world_size * j for i in range(group_world_size)]
@@ -355,12 +364,6 @@ if args.fp16:
 #     model = model.to(device)
 if args.multi_gpu:
     if args.expert_parallel:
-        model.cuda(local_rank)
-        dist.init_process_group(backend='nccl',
-                                # init_method='tcp://127.0.0.1:8000',
-                                init_method='env://',
-                                world_size=world_size,
-                                rank=global_rank)
         # data parallel group
         for j in range(group_world_size):
             moe_sync_group_list = [j + group_size * i for i in range(group_size)]  # GPUs use the same experts (from different group) will share parameters
