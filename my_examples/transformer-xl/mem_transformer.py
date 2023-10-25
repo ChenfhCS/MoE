@@ -592,7 +592,7 @@ class MemTransformerLM(nn.Module):
                         tgt_len=tgt_len, ext_len=ext_len, mem_len=mem_len,
                         dropatt=dropatt, pre_lnorm=pre_lnorm, 
                         moe=moe, moe_num_expert=moe_num_expert, 
-                        moe_world_size=world_size, moe_group=moe_comm_group,
+                        moe_world_size=moe_world_size, moe_group=moe_comm_group,
                         moe_top_k=moe_top_k)
                 )
         elif attn_type == 1: # learnable embeddings
