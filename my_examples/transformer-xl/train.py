@@ -213,7 +213,7 @@ for j in range(group_size):
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
 local_time = time.localtime()
 time_stamp = time.strftime('%Y%m%d-%H%M%S', local_time)
-log_suffix = time_stamp + f'{str(args.moe_num_expert)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}'
+log_suffix = time_stamp + f'[{str(args.moe_num_expert)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}]'
 args.work_dir = os.path.join(args.work_dir, log_suffix)
 if local_rank == 0:
     logging = create_exp_dir(args.work_dir, debug=args.debug)
