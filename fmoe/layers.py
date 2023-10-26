@@ -252,9 +252,9 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
-        print("top k: ", top_k_value)
-        print("total experts: ", num_experts)
-        print("gate outputs", gate_top_k_idx[0])
+        # print("top k: ", top_k_value)
+        # print("total experts: ", num_experts)
+        # print("gate outputs", gate_top_k_idx[0])
         # print(train_step)
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
