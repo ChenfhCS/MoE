@@ -5,6 +5,9 @@ import math
 import os, sys
 import itertools
 
+import pytz
+from datetime import datetime
+
 import numpy as np
 
 import torch
@@ -210,9 +213,15 @@ for j in range(group_size):
         moe_comm_group = group
         print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
 
+
+# log file
+# 设置东京时区
+tokyo = pytz.timezone('Asia/Tokyo')
+# 获取当前东京时间
+current_tokyo_time = datetime.now(tokyo)
+# 格式化时间
+time_stamp = current_tokyo_time.strftime('%Y%m%d-%H%M%S')
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
-local_time = time.localtime()
-time_stamp = time.strftime('%Y%m%d-%H%M%S', local_time)
 log_suffix = time_stamp + f'[{str(args.moe_num_expert)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}]'
 args.work_dir = os.path.join(args.work_dir, log_suffix)
 if local_rank == 0:
