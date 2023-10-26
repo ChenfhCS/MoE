@@ -211,7 +211,10 @@ for j in range(group_size):
         print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
 
 args.work_dir = '{}-{}'.format(args.work_dir, args.dataset)
-args.work_dir = os.path.join(args.work_dir, time.strftime('%Y%m%d-%H%M%S'))
+local_time = time.localtime()
+time_stamp = time.strftime('%Y%m%d-%H%M%S', local_time)
+log_suffix = time_stamp + f'{str(args.moe_num_expert)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}'
+args.work_dir = os.path.join(args.work_dir, log_suffix)
 if local_rank == 0:
     logging = create_exp_dir(args.work_dir, debug=args.debug)
 
