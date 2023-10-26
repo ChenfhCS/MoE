@@ -59,7 +59,7 @@ class FMoETransformerMLP(FMoE):
         self.mark_parallel_comm(expert_dp_comm)
 
         self.total_experts = num_expert * world_size
-        self.top_k = kwargs.get['top_k']
+        self.top_k = kwargs.get('top_k')
 
     def forward(self, inp: torch.Tensor, fuse_token: bool, train_step: int):
         r"""
