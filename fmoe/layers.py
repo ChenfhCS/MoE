@@ -197,7 +197,7 @@ class FMoE(nn.Module):
                 mark_module_parallel_comm(self.experts, comm)
         mark_module_parallel_comm(self.gate, "gate")
 
-    def forward(self, moe_inp, original_shape, fuse_token=False, train_step=0):
+    def forward(self, moe_inp, original_shape, total_experts, top_k, fuse_token=False, train_step=0):
         r"""
         The FMoE module first computes gate output, and then conduct MoE forward
         according to the gate.  The score of the selected gate given by the
@@ -248,10 +248,13 @@ class FMoE(nn.Module):
 
         # print('original shape: ', original_shape)
         # print('input size: ', moe_inp.size())
-        top_k_value = 2
+        top_k_value = top_k
         time_costs = 0
         start_step =0
-        num_experts = 64
+        num_experts = total_experts
+        print("top k: ", top_k_value)
+        print("total experts: ", num_experts)
+        print("gate outputs", gate_top_k_idx[0])
         # print(train_step)
         if fuse_token == True and train_step > start_step:
             time_start = time.time()

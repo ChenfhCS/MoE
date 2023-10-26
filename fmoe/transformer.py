@@ -58,6 +58,9 @@ class FMoETransformerMLP(FMoE):
         super().__init__(num_expert=num_expert, d_model=d_model, expert=expert, world_size=world_size, moe_group=moe_group, **kwargs)
         self.mark_parallel_comm(expert_dp_comm)
 
+        self.total_experts = num_expert * world_size
+        self.top_k = kwargs.get['moe_top_k']
+
     def forward(self, inp: torch.Tensor, fuse_token: bool, train_step: int):
         r"""
         This module wraps up the FMoE module with reshape, residual and layer
@@ -66,5 +69,5 @@ class FMoETransformerMLP(FMoE):
         # print("change successful: ", fuse_token)
         original_shape = inp.shape
         inp = inp.reshape(-1, self.d_model)
-        output, fusion_costs = super().forward(inp, original_shape, fuse_token, train_step)
+        output, fusion_costs = super().forward(inp, original_shape, self.total_experts, self.top_k, fuse_token, train_step)
         return output.reshape(original_shape), fusion_costs
