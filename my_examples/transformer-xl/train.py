@@ -196,7 +196,7 @@ inner_group_rank = global_rank % group_world_size # which data parallel group th
 
 if args.multi_gpu:
     if args.expert_parallel:
-        dist.init_process_group(backend='gloo',
+        dist.init_process_group(backend='nccl',
                                 # init_method='tcp://127.0.0.1:8000',
                                 init_method='env://',
                                 world_size=world_size,
