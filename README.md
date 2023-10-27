@@ -57,7 +57,7 @@ pip install expanda
 ```
 Then, download Wikipedia dump file from here. In this example, we are going to test with part of the [wiki](https://dumps.wikimedia.org/enwiki/). Download the file through the browser, move to workspace/src and rename to wiki.xml.bz2. Instead, run below code:
 ```
-mkdir src && cd src/
+mkdir src
 wget -O src/wiki.xml.bz2 https://dumps.wikimedia.org/enwiki/20230801/enwiki-20230801-pages-articles11.xml-p6899367p7054859.bz2
 ```
 After downloading the dump file, we need to setup the configuration file. Create `expanda.cfg` file and write the below:
