@@ -1,4 +1,6 @@
-torch
+pytz
+tree
 numpy
 ninja
 dm-tree
+matplotlib
