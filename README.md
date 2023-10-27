@@ -25,7 +25,7 @@ git clone https://github.com/ChenfhCS/MoE.git
 cd MoE/my_examples/
 ```
 #### 1. Replace the modification into fastmoe
-Change '**path/to/fmoe**' to your path in ``scripts/fmoe_update.sh``, and then
+Change `path/to/MoE/my_example/fmoe` and `path/to/fmoe` to your path in ``scripts/fmoe_update.sh``, and then
 ```
 bash scripts/fmoe_update.sh
 ```
