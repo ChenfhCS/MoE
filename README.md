@@ -41,7 +41,7 @@ bash scripts/getdata.sh
 
 #### 2. Run example
 ```
-bash scripts/run_enwik8_base_moe.sh
+bash scripts/run_enwik8_base_moe.sh train --work_dir=works/
 ```
 
 ### GPT-2
@@ -102,5 +102,5 @@ source ~/.bashrc
 
 ### 3. Run example
 ```
-bash scripts/run_got_moe.sh
+bash scripts/run_got_moe.sh train --work_dir=works/
 ```
