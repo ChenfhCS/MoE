@@ -23,6 +23,7 @@ support, typically versions `>=2.7.5`, is needed.
 ```
 git clone https://github.com/ChenfhCS/MoE.git
 cd MoE/my_examples/
+pip -r requirements.txt
 ```
 #### 1. Replace the modification into fastmoe
 Change `path/to/MoE/my_example/fmoe` and `path/to/fmoe` to your path in ``scripts/fmoe_update.sh``, and then
