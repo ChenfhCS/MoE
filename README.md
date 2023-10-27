@@ -1,6 +1,6 @@
 ## Introduction
 
-An distributed MoE system based on FastMoE. 
+A prototype system of distributed MoE based on FastMoE.  [**In-progress work**]
 
 ## Contents
 * [Contents](#contents)
