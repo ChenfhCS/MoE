@@ -22,10 +22,15 @@ support, typically versions `>=2.7.5`, is needed.
 ### Installing
 ```
 git clone https://github.com/ChenfhCS/MoE.git
-cd MoE/my_examples/
-pip -r requirements.txt
 ```
-#### 1. Replace the modification into fastmoe
+#### Download prerequisites
+```
+cd MoE/ && pip -r requirements.txt
+```
+#### Replace the modification into fastmoe
+```
+cd my_examples/
+```
 Change `path/to/MoE/my_example/fmoe` and `path/to/fmoe` to your path in ``scripts/fmoe_update.sh``, and then
 ```
 bash scripts/fmoe_update.sh
