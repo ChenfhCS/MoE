@@ -33,7 +33,7 @@ cd my_examples/
 ```
 Change `path/to/MoE/my_example/fmoe` and `path/to/fmoe` to your path in ``scripts/fmoe_update.sh``, and then
 ```
-bash scripts/fmoe_update.sh
+bash fmoe_update.sh
 ```
 
 ## Usage
@@ -109,5 +109,5 @@ source ~/.bashrc
 
 ### 3. Run example
 ```
-bash scripts/run_got_moe.sh train --work_dir=works/
+bash scripts/run_gpt_moe.sh train --work_dir=works/
 ```
