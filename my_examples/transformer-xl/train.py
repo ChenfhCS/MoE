@@ -526,7 +526,7 @@ def train():
     time_log = []
     fusion_time_log = []
     comm_time_log = []
-    
+
     model.train()
     if args.batch_chunk > 1:
         mems = [tuple() for _ in range(args.batch_chunk)]
@@ -553,7 +553,7 @@ def train():
                 train_loss += loss.float().item()
                 total_fusion_costs += fusion_costs
         else:
-            ret, fusion_costs = model(data, target, train_step, *mems)
+            ret, fusion_costs, comm_costs = model(data, target, train_step, *mems)
             loss, mems = ret[0], ret[1:]
             loss = loss.float().mean().type_as(loss)
             if args.fp16:
@@ -562,6 +562,7 @@ def train():
                 loss.backward()
             train_loss += loss.float().item()
             total_fusion_costs += fusion_costs
+            total_comm_costs += comm_costs
 
         if args.fp16:
             optimizer.clip_master_grads(args.clip)
