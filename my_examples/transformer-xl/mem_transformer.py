@@ -824,7 +824,7 @@ class MemTransformerLM(nn.Module):
             loss = loss.view(tgt_len, -1)
 
         if new_mems is None:
-            return [loss], total_fusion_costs
+            return [loss], total_fusion_costs, total_comm_costs
         else:
             return [loss] + new_mems, total_fusion_costs, total_comm_costs
 
