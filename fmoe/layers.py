@@ -373,19 +373,4 @@ class FMoE(nn.Module):
             [batch_size == moe_outp_batch_size[0] for batch_size in moe_outp_batch_size]
         ), "MoE outputs must have the same batch size"
 
-        # # recovery outputs
-        # if fusion == True:
-        #     time_start = time.time()
-        #     for i in range(batch_size):
-        #         gate_per_input = gate_top_k_idx[i*num_token_per_input:(i+1)*num_token_per_input]
-        #         for j in range(num_experts):
-        #             mask = torch.nonzero(gate_per_input[:, 0]==j).squeeze()
-        #             mask = mask + (i*num_token_per_input)
-        #             output_temp[mask, :] = moe_outp[i*num_experts+j, :]
-
-        #     moe_outp = output_temp
-        #     gate_top_k_idx = gate_top_k_idx_temp
-        #     time_costs += time.time() - time_start
-        # # print('output size: ', moe_outp.size())
-        print('communication costs in this laer is: ', comm_time)
         return moe_outp, time_costs, comm_time
