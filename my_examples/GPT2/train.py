@@ -334,8 +334,8 @@ def train():
     loss_log = []
     model.train()
     training_iters = range(start_step + 1, args.total_steps)
+    total_fusion_costs = 0
     for step in training_iters:
-        total_fusion_costs = 0
         model.zero_grad()
         data = _fetch_from(args, world_size, train_dataset, local_rank, args.batch_train)
         metrics = spec.train_objective(data, model, train_step)
