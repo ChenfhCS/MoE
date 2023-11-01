@@ -57,7 +57,10 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
+    comm_time = 0
+    comm_time_start = time.time()
     x = tree.map_structure(scatter_func, inp)
+    comm_time += time.time() - comm_time_start
 
     x = expert_fn(x, fwd_expert_count)
 
@@ -75,8 +78,10 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
+    comm_time_start = time.time()
     outp = tree.map_structure(gather_func, x)
-    return outp
+    comm_time += time.time() - comm_time_start
+    return outp, comm_time
 
 
 fmoe_faster_schedule = False
@@ -293,13 +298,6 @@ class FMoE(nn.Module):
             gate_top_k_idx = fused_gate.to(gate_top_k_idx.device)
             time_costs += time.time() - time_start
 
-        # # simulate bandwidth change
-        # origin_bandwidth = 6*1000*1000*1000
-        # bandwidth_500M = 500*1000*1000
-        # bandwidth_1G = 1*1000*1000*1000
-        # bandwidth_2G = 2*1000*1000*1000
-        # bandwidth_4G = 4*1000*1000*1000
-
         # choose_bandwidth = bandwidth_4G
         # exchange_tensor_size = moe_inp.size(0)*moe_inp.size(1)*8*32
         # delay = exchange_tensor_size/choose_bandwidth - exchange_tensor_size/origin_bandwidth
@@ -309,7 +307,7 @@ class FMoE(nn.Module):
         # print("input size: ",moe_inp.size())
         # print("gate size: ", gate_top_k_idx.size())
 
-        fwd = _fmoe_general_global_forward(
+        fwd, comm_time = _fmoe_general_global_forward(
             moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
             self.num_expert, self.world_size,
             experts=self.experts
@@ -409,4 +407,4 @@ class FMoE(nn.Module):
         #     gate_top_k_idx = gate_top_k_idx_temp
         #     time_costs += time.time() - time_start
         # # print('output size: ', moe_outp.size())
-        return moe_outp, time_costs
+        return moe_outp, time_costs, comm_time

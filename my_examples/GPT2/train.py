@@ -93,13 +93,13 @@ class GPT2TrainingSpec(TrainingSpec):
         if self.moe is False:
             logits = model(data['input'], use_grad_ckpt=self.use_grad_ckpt)
         else:
-            logits, fusion_costs = model(data['input'], use_grad_ckpt=self.use_grad_ckpt, train_step = train_step)
+            logits, fusion_costs, comm_time = model(data['input'], use_grad_ckpt=self.use_grad_ckpt, train_step = train_step)
         loss = self.criterion(logits.transpose(1, 2), data['output'])
 
         if self.moe is False:
             return {'loss': loss}
         else:
-            return {'loss': loss, 'fusion_costs':fusion_costs}
+            return {'loss': loss, 'fusion_costs':fusion_costs, 'comm_costs': comm_time}
 
     def eval_objective(self, data: Dict[str, torch.Tensor], model: nn.Module
                        ) -> Dict[str, torch.Tensor]:
@@ -335,9 +335,12 @@ def train():
     loss_log = []
     time_log = []
     fusion_time_log = []
+    comm_time_log = []
+
     model.train()
     training_iters = range(start_step + 1, args.total_steps)
     total_fusion_costs = 0
+    total_comm_costs = 0
     for step in training_iters:
         model.zero_grad()
         data = _fetch_from(args, world_size, train_dataset, local_rank, args.batch_train)
@@ -347,6 +350,7 @@ def train():
 
         if args.moe is True:
             total_fusion_costs += metrics['fusion_costs']
+            total_comm_costs += metrics['comm_costs']
         if args.use_amp:
             with amp.scale_loss(loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
@@ -372,11 +376,13 @@ def train():
                     time_log.append(elapsed * 1000 / args.log_interval)
                     if args.moe is True:
                         fusion_time_log.append(total_fusion_costs*1000 / args.log_interval)
+                        comm_time_log.append(total_comm_costs*1000 / args.log_interval)
                 if args.moe is True:
                     log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
+                    log_str += ' | communication costs {:5.2f}'.format(total_comm_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log))
+                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log), np.mean(comm_time_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
