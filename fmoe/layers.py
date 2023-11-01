@@ -262,9 +262,11 @@ class FMoE(nn.Module):
         # calculate the traffic size
         traffic_size = 0
         for k in range(top_k_value):
-            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
-            num_send = send.size(0)
-            traffic_size += num_send
+            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank)
+            if mask.nelement() > 0:
+                print(send)
+                num_send = send.size(0)
+                traffic_size += num_send
         traffic_size = traffic_size*moe_inp.size(1)*4*2
 
         # token fusion
