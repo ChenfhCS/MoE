@@ -526,6 +526,7 @@ def train():
     time_log = []
     fusion_time_log = []
     comm_time_log = []
+    traffic_size_log = []
 
     model.train()
     if args.batch_chunk > 1:
@@ -535,6 +536,7 @@ def train():
     train_iter = tr_iter.get_varlen_iter() if args.varlen else tr_iter
     total_fusion_costs = 0
     total_comm_costs = 0
+    total_traffic_size = 0
     for batch, (data, target, seq_len) in enumerate(train_iter):
         model.zero_grad()
         if args.batch_chunk > 1:
@@ -543,7 +545,7 @@ def train():
             for i in range(args.batch_chunk):
                 data_i = data_chunks[i].contiguous()
                 target_i = target_chunks[i].contiguous()
-                ret, fusion_costs, comm_costs = model(data_i, target_i, *mems[i])
+                ret, fusion_costs, comm_costs, traffic_size = model(data_i, target_i, *mems[i])
                 loss, mems[i] = ret[0], ret[1:]
                 loss = loss.float().mean().type_as(loss) / args.batch_chunk
                 if args.fp16:
@@ -553,7 +555,7 @@ def train():
                 train_loss += loss.float().item()
 
         else:
-            ret, fusion_costs, comm_costs = model(data, target, train_step, *mems)
+            ret, fusion_costs, comm_costs, traffic_size = model(data, target, train_step, *mems)
             loss, mems = ret[0], ret[1:]
             loss = loss.float().mean().type_as(loss)
             if args.fp16:
@@ -563,6 +565,7 @@ def train():
             train_loss += loss.float().item()
         total_fusion_costs += fusion_costs
         total_comm_costs += comm_costs
+        total_traffic_size += traffic_size
 
         if args.fp16:
             optimizer.clip_master_grads(args.clip)
@@ -608,17 +611,21 @@ def train():
                     if args.moe is True:
                         fusion_time_log.append(total_fusion_costs*1000 / args.log_interval)
                         comm_time_log.append(total_comm_costs*1000 / args.log_interval)
+                        traffic_size_log.append((total_traffic_size/(1024 * 1024)) / args.log_interval)
                 if args.moe is True:
                     log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
                     log_str += ' | communication costs {:5.2f}'.format(total_comm_costs*1000 / args.log_interval)
+                    log_str += ' | traffic size {:5.2f} (MB)'.format((total_traffic_size/(1024 * 1024)) / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log), np.mean(comm_time_log))
+                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f} | average traffic {:5.2f} MB'.format(
+                        loss_log, np.mean(time_log), np.mean(fusion_time_log), np.mean(comm_time_log), np.mean(traffic_size_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
             total_fusion_costs = 0
             total_comm_costs = 0
+            total_traffic_size = 0
 
         if train_step % args.eval_interval == 0:
             if local_rank == 0:

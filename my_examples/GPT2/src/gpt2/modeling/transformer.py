@@ -26,20 +26,20 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, fuse_token=False, train_step=0):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, fusion_costs, comm_time = super().forward(self.layer_norm(inp), fuse_token, train_step)
+            core_out, fusion_costs, comm_time, traffic_size = super().forward(self.layer_norm(inp), fuse_token, train_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, fusion_costs, comm_time = super().forward(inp, fuse_token, train_step)
+            core_out, fusion_costs, comm_time, traffic_size = super().forward(inp, fuse_token, train_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
             output = self.layer_norm(inp + core_out)
 
-        return output, fusion_costs, comm_time
+        return output, fusion_costs, comm_time, traffic_size
 
 class TransformerLayer(nn.Module):
     """
@@ -98,9 +98,9 @@ class TransformerLayer(nn.Module):
             x = x + self.ff(self.ln_ff(x))
             return x if self.training else (x, past)
         else:
-            o, fusion_costs, comm_time = self.ff(self.ln_ff(x), fuse_token, train_step)
+            o, fusion_costs, comm_time, traffic_size = self.ff(self.ln_ff(x), fuse_token, train_step)
             x = x + o
-            return x if self.training else (x, past), fusion_costs, comm_time
+            return x if self.training else (x, past), fusion_costs, comm_time, traffic_size
 
 
 class Transformer(nn.Module):
@@ -158,6 +158,7 @@ class Transformer(nn.Module):
         if self.moe is True:
             total_fusion_costs = 0
             total_comm_costs = 0
+            total_traffic_size = 0
 
         # Create masking tensor.
         mask = self.pad_masking(x, offset)
@@ -177,9 +178,10 @@ class Transformer(nn.Module):
             if self.moe is False:
                 x = transformer(x, past[i] if past is not None else None, mask)
             else:
-                x, fusion_costs, comm_time = transformer(x, past[i] if past is not None else None, mask, fuse_token = self.fuse_token, train_step = train_step)
+                x, fusion_costs, comm_time, traffic_size = transformer(x, past[i] if past is not None else None, mask, fuse_token = self.fuse_token, train_step = train_step)
                 total_fusion_costs += fusion_costs
                 total_comm_costs += comm_time
+                total_traffic_size += traffic_size
 
             if not self.training:
                 present.append(x[1])
@@ -191,4 +193,4 @@ class Transformer(nn.Module):
         if self.moe is False:
             return x if self.training else (x, present)
         else:
-            return x if self.training else (x, present), total_fusion_costs, total_comm_costs
+            return x if self.training else (x, present), total_fusion_costs, total_comm_costs, total_traffic_size

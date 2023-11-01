@@ -6,6 +6,7 @@ import tree
 import os
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 
 from .functions import prepare_forward, ensure_comm
 from .functions import MOEScatter, MOEGather
@@ -162,6 +163,11 @@ class FMoE(nn.Module):
         self.mask_dict = mask_dict
         self.moe_group = moe_group
 
+        if moe_group is not None:
+            self.moe_rank = dist.get_rank(group=mp_group)
+        else:
+            self.moe_rank = 0
+
     def expert_fn(self, inp, fwd_expert_count):
         r"""
         The default expert function which either calls the experts as a whole
@@ -253,6 +259,15 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
+        # calculate the traffic size
+        traffic_size = 0
+        for k in range(top_k_value):
+            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
+            num_send = send.size(0)
+            traffic_size += num_send
+        traffic_size = traffic_size*moe_inp.size(1)*4*2
+
+        # token fusion
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
@@ -375,4 +390,4 @@ class FMoE(nn.Module):
         ), "MoE outputs must have the same batch size"
 
         # print('the communication in a forward layer is: ', comm_time)
-        return moe_outp, time_costs, comm_time
+        return moe_outp, time_costs, comm_time, traffic_size

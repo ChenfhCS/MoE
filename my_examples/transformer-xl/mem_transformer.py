@@ -396,20 +396,20 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, fuse_token=False, train_step=0):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, fusion_costs, comm_costs = super().forward(self.layer_norm(inp), fuse_token, train_step)
+            core_out, fusion_costs, comm_costs, traffic_size = super().forward(self.layer_norm(inp), fuse_token, train_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, fusion_costs, comm_costs = super().forward(inp, fuse_token, train_step)
+            core_out, fusion_costs, comm_costs, traffic_size = super().forward(inp, fuse_token, train_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
             output = self.layer_norm(inp + core_out)
 
-        return output, fusion_costs, comm_costs
+        return output, fusion_costs, comm_costs, traffic_size
 
 class DecoderLayer(nn.Module):
     def __init__(self, n_head, d_model, d_head, d_inner, dropout, **kwargs):
@@ -486,11 +486,11 @@ class RelPartialLearnableDecoderLayer(nn.Module):
                                mems=mems)
         ffn_time = 0
         ffn_time_start = time.time()
-        output, fusion_costs, comm_costs = self.pos_ff(output, fuse_token, train_step)
+        output, fusion_costs, comm_costs, traffic_size = self.pos_ff(output, fuse_token, train_step)
         ffn_time += time.time() - ffn_time_start
         # print('ffn forward time is: ', ffn_time)
 
-        return output, fusion_costs, comm_costs
+        return output, fusion_costs, comm_costs, traffic_size
 
 class AdaptiveEmbedding(nn.Module):
     def __init__(self, n_token, d_embed, d_proj, cutoffs, div_val=1,
@@ -711,6 +711,7 @@ class MemTransformerLM(nn.Module):
     def _forward(self, dec_inp, train_step, mems=None):
         total_fusion_costs = 0
         total_comm_costs = 0
+        total_traffic_size = 0
 
         qlen, bsz = dec_inp.size()
 
@@ -745,11 +746,12 @@ class MemTransformerLM(nn.Module):
             hids.append(core_out)
             for i, layer in enumerate(self.layers):
                 mems_i = None if mems is None else mems[i]
-                core_out, fusion_costs, comm_costs = layer(core_out, pos_emb, self.r_w_bias,
+                core_out, fusion_costs, comm_costs, traffic_size = layer(core_out, pos_emb, self.r_w_bias,
                         self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mems_i, fuse_token = self.fuse_token, train_step = train_step)
                 hids.append(core_out)
                 total_fusion_costs += fusion_costs
                 total_comm_costs += comm_costs
+                total_traffic_size += traffic_size
         elif self.attn_type == 1: # learnable
             core_out = self.drop(word_emb)
             hids.append(core_out)
@@ -806,7 +808,7 @@ class MemTransformerLM(nn.Module):
 
         new_mems = self._update_mems(hids, mems, mlen, qlen)
 
-        return core_out, new_mems, total_fusion_costs, total_comm_costs
+        return core_out, new_mems, total_fusion_costs, total_comm_costs, total_traffic_size
 
     def forward(self, data, target, train_step, *mems):
         # nn.DataParallel does not allow size(0) tensors to be broadcasted.
@@ -816,7 +818,10 @@ class MemTransformerLM(nn.Module):
         if not mems: mems = self.init_mems(data)
 
         tgt_len = target.size(0)
-        hidden, new_mems, total_fusion_costs, total_comm_costs = self._forward(data, train_step, mems=mems)
+
+        model_time_start = time.time()
+        hidden, new_mems, total_fusion_costs, total_comm_costs, total_traffic_size = self._forward(data, train_step, mems=mems)
+        # print('model time costs: ', time.time() - model_time_start)
 
         pred_hid = hidden[-tgt_len:]
         if self.sample_softmax > 0 and self.training:
@@ -829,9 +834,9 @@ class MemTransformerLM(nn.Module):
             loss = loss.view(tgt_len, -1)
 
         if new_mems is None:
-            return [loss], total_fusion_costs, total_comm_costs
+            return [loss], total_fusion_costs, total_comm_costs, total_traffic_size
         else:
-            return [loss] + new_mems, total_fusion_costs, total_comm_costs
+            return [loss] + new_mems, total_fusion_costs, total_comm_costs, total_traffic_size
 
 if __name__ == '__main__':
     import argparse
