@@ -3,6 +3,7 @@ import math
 import functools
 
 import numpy as np
+import time
 
 import torch
 import torch.nn as nn
@@ -483,7 +484,11 @@ class RelPartialLearnableDecoderLayer(nn.Module):
         output = self.dec_attn(dec_inp, r, r_w_bias, r_r_bias,
                                attn_mask=dec_attn_mask,
                                mems=mems)
+        ffn_time = 0
+        ffn_time_start = time.time()
         output, fusion_costs, comm_costs = self.pos_ff(output, fuse_token, train_step)
+        ffn_time += time.time() - ffn_time_start
+        # print('ffn forward time is: ', ffn_time)
 
         return output, fusion_costs, comm_costs
 
