@@ -195,4 +195,4 @@ class Transformer(nn.Module):
         if self.moe is False:
             return x if self.training else (x, present)
         else:
-            return x if self.training else (x, present), self.total_fusion_costs, self.total_comm_time
+            return x if self.training else (x, present), self.total_fusion_costs, self.total_comm_costs
