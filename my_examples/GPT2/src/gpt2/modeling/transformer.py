@@ -157,6 +157,9 @@ class Transformer(nn.Module):
                 ) -> Union[torch.Tensor, Tuple[torch.Tensor, List[Past]]]:
         offset = past[0][0].size(-2) if past is not None else 0
 
+        if self.moe is True:
+            self.total_fusion_costs = 0
+
         # Create masking tensor.
         mask = self.pad_masking(x, offset)
         if not self.bidirectional:
