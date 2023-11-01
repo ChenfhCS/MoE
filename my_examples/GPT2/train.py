@@ -387,7 +387,7 @@ def train():
                     log_str += ' | traffic size {:5.2f} MB'.format((total_traffic_size/(1024 * 1024)) / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f} | average traffic {:5.2f} MB'.format(
+                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f} | average comm time {:5.2f} | average traffic {:5.2f} MB'.format(
                         loss_log, np.mean(time_log), np.mean(fusion_time_log), np.mean(comm_time_log), np.mean(traffic_size_log))
                 logging(log_str)
                 log_start_time = time.time()
