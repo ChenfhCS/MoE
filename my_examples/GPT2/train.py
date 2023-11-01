@@ -261,6 +261,7 @@ train_dataset, eval_dataset = spec.prepare_datasets()
 
 # Build the model
 model = spec.construct_model().cuda()
+args.n_all_param = sum([p.nelement() for p in model.parameters()])
 if local_rank == 0:
     logging('=' * 100)
     for k, v in args.__dict__.items():
