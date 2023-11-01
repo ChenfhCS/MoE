@@ -332,6 +332,7 @@ if args.from_checkpoint:
 def train():
     global train_step, train_loss, best_val_loss, eval_start_time, log_start_time
     loss_log = []
+    time_log = []
     model.train()
     training_iters = range(start_step + 1, args.total_steps)
     total_fusion_costs = 0
@@ -365,11 +366,13 @@ def train():
                     train_step, step, optimizer.param_groups[0]['lr'],
                     elapsed * 1000 / args.log_interval, cur_loss)
                 log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
+                if train_step > 10:
+                    time_log.append(elapsed * 1000 / args.log_interval)
                 if args.moe is True:
                     log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {}'.format(loss_log)
+                    log_str += ' | current losses {} | average batch time {}'.format(loss_log, np.mean(time_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
