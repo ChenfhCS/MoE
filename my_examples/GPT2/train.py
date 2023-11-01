@@ -87,12 +87,12 @@ class GPT2TrainingSpec(TrainingSpec):
             optimizer, lambda step: 1 - step / self.total_steps)
         return optimizer, scheduler
 
-    def train_objective(self, data: Dict[str, torch.Tensor], model: nn.Module
+    def train_objective(self, data: Dict[str, torch.Tensor], model: nn.Module, train_step: int
                         ) -> Dict[str, torch.Tensor]:
         if self.moe is False:
             logits = model(data['input'], use_grad_ckpt=self.use_grad_ckpt)
         else:
-            logits, fusion_costs = model(data['input'], use_grad_ckpt=self.use_grad_ckpt)
+            logits, fusion_costs = model(data['input'], use_grad_ckpt=self.use_grad_ckpt, train_step = train_step)
         loss = self.criterion(logits.transpose(1, 2), data['output'])
 
         if self.moe is False:
@@ -338,7 +338,7 @@ def train():
         total_fusion_costs = 0
         model.zero_grad()
         data = _fetch_from(args, world_size, train_dataset, local_rank, args.batch_train)
-        metrics = spec.train_objective(data, model)
+        metrics = spec.train_objective(data, model, train_step)
         loss = metrics['loss']
         train_loss += loss.float().item()
 
