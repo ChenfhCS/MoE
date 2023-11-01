@@ -387,6 +387,7 @@ def train():
                 log_start_time = time.time()
             train_loss = 0
             total_fusion_costs = 0
+            total_comm_costs = 0
 
         if train_step == args.total_steps:
             break

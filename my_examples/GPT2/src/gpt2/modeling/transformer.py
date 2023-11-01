@@ -146,10 +146,6 @@ class Transformer(nn.Module):
 
         self.moe = moe
         self.fuse_token =fuse_token
-        if self.moe is True:
-            self.total_fusion_costs = 0
-            self.total_comm_costs = 0
-        
 
     def forward(self,
                 x: torch.Tensor,
@@ -160,8 +156,8 @@ class Transformer(nn.Module):
         offset = past[0][0].size(-2) if past is not None else 0
 
         if self.moe is True:
-            self.total_fusion_costs = 0
-            self.total_comm_costs = 0
+            total_fusion_costs = 0
+            total_comm_costs = 0
 
         # Create masking tensor.
         mask = self.pad_masking(x, offset)
@@ -182,8 +178,8 @@ class Transformer(nn.Module):
                 x = transformer(x, past[i] if past is not None else None, mask)
             else:
                 x, fusion_costs, comm_time = transformer(x, past[i] if past is not None else None, mask, fuse_token = self.fuse_token, train_step = train_step)
-                self.total_fusion_costs += fusion_costs
-                self.total_comm_costs += comm_time
+                total_fusion_costs += fusion_costs
+                total_comm_costs += comm_time
 
             if not self.training:
                 present.append(x[1])
@@ -195,4 +191,4 @@ class Transformer(nn.Module):
         if self.moe is False:
             return x if self.training else (x, present)
         else:
-            return x if self.training else (x, present), self.total_fusion_costs, self.total_comm_costs
+            return x if self.training else (x, present), total_fusion_costs, total_comm_costs

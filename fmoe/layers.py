@@ -221,14 +221,17 @@ class FMoE(nn.Module):
                 ensure_comm(tensor, self.moe_group)
 
             tree.map_structure(ensure_comm_func, moe_inp)
-        if self.slice_size > 1:
 
+        comm_time = 0
+        comm_time_start = time.time()
+        if self.slice_size > 1:
             def slice_func(tensor):
                 return Slice.apply(
                     tensor, self.slice_rank, self.slice_size, self.slice_group
                 )
 
             moe_inp = tree.map_structure(slice_func, moe_inp)
+        comm_time += time.time() - comm_time_start
 
         gate_top_k_idx, gate_score = self.gate(moe_inp)
         # print(self.gate,gate_top_k_idx, gate_score)
@@ -247,20 +250,11 @@ class FMoE(nn.Module):
             moe_inp = tree.map_structure(delete_mask_func, moe_inp)
             gate_top_k_idx = gate_top_k_idx[mask == 0, :]
 
-        # print('before fusion!')
-        # print("input size: ",moe_inp.size())
-        # print("gate outputs", gate_top_k_idx[0])
-
-        # print('original shape: ', original_shape)
-        # print('input size: ', moe_inp.size())
         top_k_value = top_k
         time_costs = 0
         start_step =0
         num_experts = total_experts
-        # print("top k: ", top_k_value)
-        # print("total experts: ", num_experts)
-        # print("gate outputs", gate_top_k_idx[0])
-        # print(train_step)
+
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
@@ -298,16 +292,7 @@ class FMoE(nn.Module):
             gate_top_k_idx = fused_gate.to(gate_top_k_idx.device)
             time_costs += time.time() - time_start
 
-        # choose_bandwidth = bandwidth_4G
-        # exchange_tensor_size = moe_inp.size(0)*moe_inp.size(1)*8*32
-        # delay = exchange_tensor_size/choose_bandwidth - exchange_tensor_size/origin_bandwidth
-        # time.sleep(delay)
-
-        # print('after fusion!')
-        # print("input size: ",moe_inp.size())
-        # print("gate size: ", gate_top_k_idx.size())
-
-        fwd, comm_time = _fmoe_general_global_forward(
+        fwd, _ = _fmoe_general_global_forward(
             moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
             self.num_expert, self.world_size,
             experts=self.experts
@@ -377,14 +362,14 @@ class FMoE(nn.Module):
 
         moe_outp = tree.map_structure(bmm_func, moe_outp)
 
+        comm_time_start = time.time()
         if self.slice_size > 1:
-
             def all_gather_func(tensor):
                 return AllGather.apply(
                     tensor, self.slice_rank, self.slice_size, self.slice_group
                 )
-
             moe_outp = tree.map_structure(all_gather_func, moe_outp)
+        comm_time += time.time() - comm_time_start
 
         moe_outp_batch_size = tree.flatten(
             tree.map_structure(lambda tensor: tensor.shape[0], moe_outp)
