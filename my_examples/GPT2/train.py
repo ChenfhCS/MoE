@@ -176,7 +176,7 @@ parser.add_argument('--multi_gpu', action='store_true',
                     help='use multiple GPU')
 parser.add_argument('--debug', action='store_true',
                     help='run in debug mode (do not create exp dir)')
-parser.add_argument('--log-interval', type=int, default=100,
+parser.add_argument('--log-interval', type=int, default=10,
                     help='report interval')
 parser.add_argument('--eval-interval', type=int, default=3000,
                     help='evaluation interval')
