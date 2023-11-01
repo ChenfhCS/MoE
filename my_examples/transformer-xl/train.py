@@ -523,14 +523,19 @@ def train():
     # Turn on training mode which enables dropout.
     global train_step, train_loss, best_val_loss, eval_start_time, log_start_time
     loss_log = []
+    time_log = []
+    fusion_time_log = []
+    comm_time_log = []
+    
     model.train()
     if args.batch_chunk > 1:
         mems = [tuple() for _ in range(args.batch_chunk)]
     else:
         mems = tuple()
     train_iter = tr_iter.get_varlen_iter() if args.varlen else tr_iter
+    total_fusion_costs = 0
+    total_comm_costs = 0
     for batch, (data, target, seq_len) in enumerate(train_iter):
-        total_fusion_costs = 0
         model.zero_grad()
         if args.batch_chunk > 1:
             data_chunks = torch.chunk(data, args.batch_chunk, 1)
@@ -592,21 +597,27 @@ def train():
             if local_rank == 0:
                 cur_loss = train_loss / args.log_interval
                 elapsed = time.time() - log_start_time
-                log_str = '| epoch {:3d} step {:>8d} | {:>6d} batches | lr {:.3g} ' \
-                        '| ms/batch {:5.2f} | loss {:5.2f} | fusion costs {:5.2f}'.format(
-                    epoch, train_step, batch+1, optimizer.param_groups[0]['lr'],
-                    elapsed * 1000 / args.log_interval, cur_loss, total_fusion_costs*1000)
-                if args.dataset in ['enwik8', 'text8']:
-                    log_str += ' | bpc {:9.5f}'.format(cur_loss / math.log(2))
-                else:
-                    log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
+                log_str = '| step {:>8d} | {:>6d} batches | lr {:.3g} ' \
+                        '| ms/batch {:5.2f} | loss {:5.2f}'.format(
+                    train_step, step, optimizer.param_groups[0]['lr'],
+                    elapsed * 1000 / args.log_interval, cur_loss)
+                log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
+                if train_step > 10:
+                    time_log.append(elapsed * 1000 / args.log_interval)
+                    if args.moe is True:
+                        fusion_time_log.append(total_fusion_costs*1000 / args.log_interval)
+                        comm_time_log.append(total_comm_costs*1000 / args.log_interval)
+                if args.moe is True:
+                    log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
+                    log_str += ' | communication costs {:5.2f}'.format(total_comm_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {}'.format(loss_log)
+                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log), np.mean(comm_time_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
             total_fusion_costs = 0
+            total_comm_costs = 0
 
         if train_step % args.eval_interval == 0:
             if local_rank == 0:
