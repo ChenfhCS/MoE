@@ -801,7 +801,7 @@ class MemTransformerLM(nn.Module):
 
         new_mems = self._update_mems(hids, mems, mlen, qlen)
 
-        return core_out, new_mems, total_fusion_costs
+        return core_out, new_mems, total_fusion_costs, total_comm_costs
 
     def forward(self, data, target, train_step, *mems):
         # nn.DataParallel does not allow size(0) tensors to be broadcasted.
