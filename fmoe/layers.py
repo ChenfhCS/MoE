@@ -222,8 +222,6 @@ class FMoE(nn.Module):
 
             tree.map_structure(ensure_comm_func, moe_inp)
 
-        comm_time = 0
-        comm_time_start = time.time()
         if self.slice_size > 1:
             def slice_func(tensor):
                 return Slice.apply(
@@ -231,7 +229,6 @@ class FMoE(nn.Module):
                 )
 
             moe_inp = tree.map_structure(slice_func, moe_inp)
-        comm_time += time.time() - comm_time_start
 
         gate_top_k_idx, gate_score = self.gate(moe_inp)
         # print(self.gate,gate_top_k_idx, gate_score)
@@ -292,7 +289,7 @@ class FMoE(nn.Module):
             gate_top_k_idx = fused_gate.to(gate_top_k_idx.device)
             time_costs += time.time() - time_start
 
-        fwd, _ = _fmoe_general_global_forward(
+        fwd, comm_time = _fmoe_general_global_forward(
             moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
             self.num_expert, self.world_size,
             experts=self.experts
@@ -362,14 +359,12 @@ class FMoE(nn.Module):
 
         moe_outp = tree.map_structure(bmm_func, moe_outp)
 
-        comm_time_start = time.time()
         if self.slice_size > 1:
             def all_gather_func(tensor):
                 return AllGather.apply(
                     tensor, self.slice_rank, self.slice_size, self.slice_group
                 )
             moe_outp = tree.map_structure(all_gather_func, moe_outp)
-        comm_time += time.time() - comm_time_start
 
         moe_outp_batch_size = tree.flatten(
             tree.map_structure(lambda tensor: tensor.shape[0], moe_outp)
