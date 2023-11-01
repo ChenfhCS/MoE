@@ -366,7 +366,7 @@ def train():
                     elapsed * 1000 / args.log_interval, cur_loss)
                 log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
                 if args.moe is True:
-                    log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000)
+                    log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
                     log_str += ' | current losses {}'.format(loss_log)
