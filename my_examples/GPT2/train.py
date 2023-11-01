@@ -261,6 +261,12 @@ train_dataset, eval_dataset = spec.prepare_datasets()
 
 # Build the model
 model = spec.construct_model().cuda()
+if local_rank == 0:
+    logging('=' * 100)
+    for k, v in args.__dict__.items():
+        logging('    - {} : {}'.format(k, v))
+    logging('=' * 100)
+    logging('#params = {}'.format(args.n_all_param))
 if args.from_pretrained:
     ckpt = torch.load(args.from_pretrained, map_location='cuda')
     model.load_state_dict(ckpt['model'])
@@ -383,7 +389,7 @@ eval_start_time = time.time()
 # At any point you can hit Ctrl + C to break out of training early.
 try:
     train()
-    if train_step == args.max_step:
+    if train_step == args.total_steps:
         if local_rank == 0:
             logging('-' * 100)
             logging('End of training')
@@ -392,11 +398,11 @@ except KeyboardInterrupt:
         logging('-' * 100)
         logging('Exiting from training early')
 
-if local_rank == 0:
-    # Load the best saved model.
-    with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-        model = torch.load(f)
-    model = model.to(device)
+# if local_rank == 0:
+#     # Load the best saved model.
+#     with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
+#         model = torch.load(f)
+#     model = model.to(device)
 
     # # Run on test data.
     # test_loss = evaluate(te_iter)
