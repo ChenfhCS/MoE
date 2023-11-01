@@ -600,7 +600,7 @@ def train():
                 elapsed = time.time() - log_start_time
                 log_str = '| step {:>8d} | {:>6d} batches | lr {:.3g} ' \
                         '| ms/batch {:5.2f} | loss {:5.2f}'.format(
-                    train_step, step, optimizer.param_groups[0]['lr'],
+                    train_step, batch, optimizer.param_groups[0]['lr'],
                     elapsed * 1000 / args.log_interval, cur_loss)
                 log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
                 if train_step > 10:
