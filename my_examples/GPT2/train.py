@@ -1,5 +1,6 @@
 import argparse
 import tqdm, os, pytz, time, math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -333,6 +334,7 @@ def train():
     global train_step, train_loss, best_val_loss, eval_start_time, log_start_time
     loss_log = []
     time_log = []
+    fusion_time_log = []
     model.train()
     training_iters = range(start_step + 1, args.total_steps)
     total_fusion_costs = 0
@@ -368,11 +370,13 @@ def train():
                 log_str += ' | ppl {:9.3f}'.format(math.exp(cur_loss))
                 if train_step > 10:
                     time_log.append(elapsed * 1000 / args.log_interval)
+                    if args.moe is True:
+                        fusion_time_log.append(total_fusion_costs*1000 / args.log_interval)
                 if args.moe is True:
                     log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {} | average batch time {}'.format(loss_log, np.mean(time_log))
+                    log_str += ' | current losses {} | average batch time {} | average fusion time {}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
