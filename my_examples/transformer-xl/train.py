@@ -686,19 +686,19 @@ except KeyboardInterrupt:
         logging('-' * 100)
         logging('Exiting from training early')
 
-if local_rank == 0:
-    # Load the best saved model.
-    with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-        model = torch.load(f)
-    model = model.to(device)
+# if local_rank == 0:
+#     # Load the best saved model.
+#     with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
+#         model = torch.load(f)
+#     model = model.to(device)
 
-    # Run on test data.
-    test_loss = evaluate(te_iter)
-    logging('=' * 100)
-    if args.dataset in ['enwik8', 'text8']:
-        logging('| End of training | test loss {:5.2f} | test bpc {:9.5f}'.format(
-            test_loss, test_loss / math.log(2)))
-    else:
-        logging('| End of training | test loss {:5.2f} | test ppl {:9.3f}'.format(
-            test_loss, math.exp(test_loss)))
-    logging('=' * 100)
+#     # Run on test data.
+#     test_loss = evaluate(te_iter)
+#     logging('=' * 100)
+#     if args.dataset in ['enwik8', 'text8']:
+#         logging('| End of training | test loss {:5.2f} | test bpc {:9.5f}'.format(
+#             test_loss, test_loss / math.log(2)))
+#     else:
+#         logging('| End of training | test loss {:5.2f} | test ppl {:9.3f}'.format(
+#             test_loss, math.exp(test_loss)))
+#     logging('=' * 100)
