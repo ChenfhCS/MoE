@@ -543,7 +543,7 @@ def train():
             for i in range(args.batch_chunk):
                 data_i = data_chunks[i].contiguous()
                 target_i = target_chunks[i].contiguous()
-                ret, fusion_costs = model(data_i, target_i, *mems[i])
+                ret, fusion_costs, comm_costs = model(data_i, target_i, *mems[i])
                 loss, mems[i] = ret[0], ret[1:]
                 loss = loss.float().mean().type_as(loss) / args.batch_chunk
                 if args.fp16:
@@ -551,7 +551,7 @@ def train():
                 else:
                     loss.backward()
                 train_loss += loss.float().item()
-                total_fusion_costs += fusion_costs
+
         else:
             ret, fusion_costs, comm_costs = model(data, target, train_step, *mems)
             loss, mems = ret[0], ret[1:]
@@ -561,8 +561,8 @@ def train():
             else:
                 loss.backward()
             train_loss += loss.float().item()
-            total_fusion_costs += fusion_costs
-            total_comm_costs += comm_costs
+        total_fusion_costs += fusion_costs
+        total_comm_costs += comm_costs
 
         if args.fp16:
             optimizer.clip_master_grads(args.clip)
