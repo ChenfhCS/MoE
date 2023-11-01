@@ -93,7 +93,7 @@ TypeError: Can’t convert <tokenizers.trainers.BpeTrainer object at 0x7f8641325
 
 Just fix it by changing the following code in your `tokenizer.py` file:
 ```
-tokenizer.train(trainer=trainer, files=["big.txt"])
+tokenizer.train(trainer=trainer, files=[subset_file])
 ```
 
 ### 2. Install gpt2
