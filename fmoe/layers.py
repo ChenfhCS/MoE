@@ -48,7 +48,6 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
         topk = gate.shape[1]
 
     comm_time = 0
-    comm_time_start = time.time()
     def scatter_func(tensor):
         return MOEScatter.apply(
             tensor,
@@ -59,8 +58,9 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
-    
+    comm_time_start = time.time()
     x = tree.map_structure(scatter_func, inp)
+    comm_time += time.time() - comm_time_start
 
 
     x = expert_fn(x, fwd_expert_count)
@@ -79,6 +79,7 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
+    comm_time_start = time.time()
     outp = tree.map_structure(gather_func, x)
     comm_time += time.time() - comm_time_start
     return outp, comm_time
@@ -373,4 +374,5 @@ class FMoE(nn.Module):
             [batch_size == moe_outp_batch_size[0] for batch_size in moe_outp_batch_size]
         ), "MoE outputs must have the same batch size"
 
+        print('the communication in a forward layer is: ', comm_time)
         return moe_outp, time_costs, comm_time
