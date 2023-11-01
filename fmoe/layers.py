@@ -60,7 +60,7 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
         )
 
     
-    x, time_costs = tree.map_structure(scatter_func, inp)
+    x = tree.map_structure(scatter_func, inp)
 
 
     x = expert_fn(x, fwd_expert_count)
@@ -79,7 +79,7 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
-    outp, time_costs = tree.map_structure(gather_func, x)
+    outp = tree.map_structure(gather_func, x)
     comm_time += time.time() - comm_time_start
     return outp, comm_time
 
