@@ -376,7 +376,7 @@ def train():
                     log_str += ' | fusion costs {:5.2f}'.format(total_fusion_costs*1000 / args.log_interval)
                 loss_log.append(round(cur_loss, 2))
                 if len(loss_log) % 10 == 0:
-                    log_str += ' | current losses {} | average batch time {} | average fusion time {}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log))
+                    log_str += ' | current losses {} | average batch time {:5.2f} | average fusion time {:5.2f}'.format(loss_log, np.mean(time_log), np.mean(fusion_time_log))
                 logging(log_str)
                 log_start_time = time.time()
             train_loss = 0
