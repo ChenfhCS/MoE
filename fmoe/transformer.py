@@ -69,5 +69,5 @@ class FMoETransformerMLP(FMoE):
         # print("change successful: ", fuse_token)
         original_shape = inp.shape
         inp = inp.reshape(-1, self.d_model)
-        output, fusion_costs = super().forward(inp, original_shape, self.total_experts, self.top_k, fuse_token, train_step)
-        return output.reshape(original_shape), fusion_costs
+        output, fusion_costs, comm_time = super().forward(inp, original_shape, self.total_experts, self.top_k, fuse_token, train_step)
+        return output.reshape(original_shape), fusion_costs, comm_time
