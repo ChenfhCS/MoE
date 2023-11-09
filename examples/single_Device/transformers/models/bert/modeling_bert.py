@@ -515,7 +515,12 @@ class BertLayer(nn.Module):
             self.output = BertOutput(config)
         else:
             self.moe = True
-            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=config.hidden_size,d_inner=config.intermediate_size,dropout=config.hidden_dropout_prob,moe_num_expert=config.moe_num_expert,moe_world_size=config.moe_world_size, moe_group=config.moe_group, moe_top_k=config.moe_top_k)
+            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=config.hidden_size, d_inner=config.intermediate_size,
+                                                          dropout=config.hidden_dropout_prob,
+                                                          moe_num_expert=config.moe_num_experts,
+                                                          moe_world_size=config.moe_world_size, 
+                                                          moe_group=config.moe_group, 
+                                                          moe_top_k=config.moe_top_k)
     def forward(
         self,
         hidden_states: torch.Tensor,

@@ -13,6 +13,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# calculate similarity
+Distance = []
+Simlarity = []
+import torch.nn as nn
+import numpy as np
+def calculate_distance(embs):
+    dis_func = nn.PairwiseDistance(p=2)
+    embs.cpu()
+    embs_temp = embs.clone().detach().cpu()
+    distances = []
+    similarities = []
+    for i in range(embs.size(0)):
+        compare_emb = torch.zeros(embs.size(0), embs.size(1), dtype=torch.float32)
+        compare_emb[:, :] = embs[i,:]
+        distance_tensor = dis_func(compare_emb, embs_temp)
+        similarity_tensor = nn.functional.cosine_similarity(compare_emb, embs_temp)
+        similarities.append(similarity_tensor[i:])
+        distances.append(distance_tensor[i:])
+    final_distance = torch.cat(distances,0).numpy()
+    final_similarity = torch.cat(similarities, 0).numpy()
+    Distance.append(final_distance)
+    Simlarity.append(final_similarity)
+    if len(Distance) == 8:
+        np.savez('./transfo_embs_dis.npz', Distance)
+        np.savez('./transfo_embs_sim.npz', Simlarity)
+
+
+
 """
  PyTorch Transformer XL model. Adapted from https://github.com/kimiyoung/transformer-xl. In particular
  https://github.com/kimiyoung/transformer-xl/blob/master/pytorch/mem_transformer.py
@@ -261,6 +290,7 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
             output = self.layer_norm(inp + core_out)
 
         return output # , fusion_costs
+
 class RelPartialLearnableMultiHeadAttn(nn.Module):
     def __init__(
         self,
@@ -413,7 +443,11 @@ class RelPartialLearnableDecoderLayer(nn.Module):
             )
         else:
             self.moe = True
-            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=d_model,d_inner=d_inner,dropout=dropout,moe_num_expert=moe_config.num_experts)
+            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=d_model,d_inner=d_inner,dropout=dropout, 
+                                                          moe_num_expert=moe_config.moe_num_experts,
+                                                          moe_top_k=moe_config.moe_top_k,
+                                                          moe_group=moe_config.moe_group,
+                                                          moe_world_size=moe_config.moe_world_size)
     def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None, output_attentions=False):
         attn_outputs = self.dec_attn(
             dec_inp,
@@ -426,6 +460,15 @@ class RelPartialLearnableDecoderLayer(nn.Module):
         if not self.moe:
             ff_output = self.pos_ff(attn_outputs[0])
         else:
+            # # calculate token similarity
+            # tensor_temp = attn_outputs[0].clone().detach()
+            # token_1 = tensor_temp[:,0,:]
+            # token_2 = tensor_temp[:,1,:]
+            # token_3 = tensor_temp[:,2,:]
+            # token_4 = tensor_temp[:,3,:]
+            # tokens = torch.cat((token_1,token_2,token_3,token_4), 0)
+            # calculate_distance(tokens)
+            # print('token embeddings: ', tokens.size())
             ff_output = self.moe_linear(attn_outputs[0])
         outputs = [ff_output] + attn_outputs[1:]
 

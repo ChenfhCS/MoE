@@ -68,7 +68,6 @@ BERT_PRETRAINED_CONFIG_ARCHIVE_MAP = {
     # See all BERT models at https://huggingface.co/models?filter=bert
 }
 
-
 class BertConfig(PretrainedConfig):
     r"""
     This is the configuration class to store the configuration of a [`BertModel`] or a [`TFBertModel`]. It is used to

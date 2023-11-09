@@ -48,6 +48,31 @@ from ...utils import (
 from ...utils.model_parallel_utils import assert_device_map, get_device_map
 from .configuration_gpt2 import GPT2Config
 
+# calculate similarity
+Distance = []
+Simlarity = []
+import torch.nn as nn
+import numpy as np
+def calculate_distance(embs):
+    dis_func = nn.PairwiseDistance(p=2)
+    embs.cpu()
+    embs_temp = embs.clone().detach().cpu()
+    distances = []
+    similarities = []
+    for i in range(embs.size(0)):
+        compare_emb = torch.zeros(embs.size(0), embs.size(1), dtype=torch.float32)
+        compare_emb[:, :] = embs[i,:]
+        distance_tensor = dis_func(compare_emb, embs_temp)
+        similarity_tensor = nn.functional.cosine_similarity(compare_emb, embs_temp)
+        similarities.append(similarity_tensor[i:])
+        distances.append(distance_tensor[i:])
+    final_distance = torch.cat(distances,0).numpy()
+    final_similarity = torch.cat(similarities, 0).numpy()
+    Distance.append(final_distance)
+    Simlarity.append(final_similarity)
+    if len(Distance) == 8:
+        np.savez('./gpt_embs_dis.npz', Distance)
+        np.savez('./gpt_embs_sim.npz', Simlarity)
 
 logger = logging.get_logger(__name__)
 
@@ -410,7 +435,12 @@ class GPT2Block(nn.Module):
             self.mlp = GPT2MLP(inner_dim, config)
         else:
             self.moe = True
-            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=config.hidden_size,d_inner=inner_dim,dropout=config.resid_pdrop,moe_num_expert=config.num_experts)
+            self.moe_linear = CustomizedMoEPositionwiseFF(d_model=config.hidden_size,d_inner=inner_dim,
+                                                          dropout=config.resid_pdrop,
+                                                          moe_num_expert=config.moe_num_experts,
+                                                          moe_top_k=config.moe_top_k,
+                                                          moe_group=config.moe_group,
+                                                          moe_world_size=config.moe_world_size)
 
     def forward(
         self,
@@ -465,6 +495,14 @@ class GPT2Block(nn.Module):
             hidden_states = self.ln_2(hidden_states)
             feed_forward_hidden_states = self.mlp(hidden_states)
         else:
+            # # calculate token similarity 
+            # tensor_temp = hidden_states.clone().detach()
+            # token_1 = tensor_temp[0, :, :]
+            # token_2 = tensor_temp[1, :, :]
+            # # token_3 = tensor_temp[2, :, :]
+            # # token_4 = tensor_temp[3, :, :]
+            # tokens = torch.cat((token_1,token_2), 0)
+            # calculate_distance(tokens)
             feed_forward_hidden_states = self.moe_linear(hidden_states)
         # residual connection
 
