@@ -123,22 +123,23 @@ def train_xl_MoE(**kwargs):
                                             epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
 
-        model.eval()
-        for batch in eval_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            with torch.no_grad():
-                outputs = model(**batch)
+        if step % eval_interval == 0:
+            model.eval()
+            for batch in eval_dataloader:
+                batch = {k: v.to(device) for k, v in batch.items()}
+                with torch.no_grad():
+                    outputs = model(**batch)
 
-            logits = outputs.logits
-            predictions = torch.argmax(logits, dim=-1)
-            metric.add_batch(predictions=predictions, references=batch["labels"])
-            # break
-        metrics = metric.compute()
-        if use_wandb is True:
-            wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
-        if best_acc < metrics['accuracy']:
-            save_model(model,model_name)
-            best_acc = metrics['accuracy']
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=-1)
+                metric.add_batch(predictions=predictions, references=batch["labels"])
+                # break
+            metrics = metric.compute()
+            if use_wandb is True:
+                wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
+            if best_acc < metrics['accuracy']:
+                save_model(model,model_name)
+                best_acc = metrics['accuracy']
 
     if use_wandb is True:
         wandb.finish()
