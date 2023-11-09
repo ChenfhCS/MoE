@@ -116,6 +116,8 @@ log_suffix = time_stamp + f'[{str(args.moe_num_experts)}Exp_Fusion_{args.fuse_to
 args.work_dir = os.path.join(args.work_dir, log_suffix)
 if local_rank == 0:
     logging = create_exp_dir(args.work_dir, debug=args.debug)
+else:
+    logging = None
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
