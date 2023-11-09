@@ -509,8 +509,8 @@ def train_GPT_MoE(**kwargs):
 
     # model.train()
 
-    progress_bar = tqdm(range(num_training_steps))
-    model = model.to(device)
+    if local_rank == 0:
+        progress_bar = tqdm(range(num_training_steps))
     best_acc = 0
     model_name='gpt'
 
