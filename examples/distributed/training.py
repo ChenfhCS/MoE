@@ -413,8 +413,8 @@ def train_Bert_MoE(**kwargs):
                 end_logits = np.concatenate(end_logits)
                 # start_logits = start_logits[: len(validation_dataset)]
                 # end_logits = end_logits[: len(validation_dataset)]
-                start_logits = start_logits[: stop_batch+1]
-                end_logits = end_logits[: stop_batch+1]
+                start_logits = start_logits[:]
+                end_logits = end_logits[:]
                 # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
                 metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
                 # {'exact_match': 83.0, 'f1': 88.25}
