@@ -117,15 +117,10 @@ def train_xl_MoE(**kwargs):
             if use_wandb is True:
                 wandb.log({'batch_loss': loss_all/step})
             # break
-            if step % log_interval == 0:
-                loss_log = loss_all/step
-                elapsed_log = elapsed_all/step
-                loss_all = 0
-                elapsed_all = 0
 
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, loss_log, best_acc, elapsed_log))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
 
         model.eval()
@@ -390,15 +385,9 @@ def train_Bert_MoE(**kwargs):
             step += 1
             if use_wandb:
                 wandb.log({'batch_loss': loss_all/step})
-            if step % log_interval == 0:
-                loss_log = loss_all/step
-                elapsed_log = elapsed_all/step
-                loss_all = 0
-                elapsed_all = 0
-
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, loss_log, best_acc, elapsed_log))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
@@ -565,15 +554,9 @@ def train_GPT_MoE(**kwargs):
             if use_wandb:
                 wandb.log({'batch_loss': loss_all/step})
             # break
-            if step % log_interval == 0:
-                loss_log = loss_all/step
-                elapsed_log = elapsed_all/step
-                loss_all = 0
-                elapsed_all = 0
-
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, loss_log, best_acc, elapsed_log))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
