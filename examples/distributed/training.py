@@ -399,6 +399,7 @@ def train_Bert_MoE(**kwargs):
                 start_logits = []
                 end_logits = []
                 # accelerator.print("Evaluation!")
+                stop_batch = 10
                 for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
@@ -406,12 +407,14 @@ def train_Bert_MoE(**kwargs):
 
                     start_logits.append(outputs.start_logits.cpu().numpy())
                     end_logits.append(outputs.end_logits.cpu().numpy())
-                    if idx >= 10:
+                    if idx >= stop_batch:
                         break
                 start_logits = np.concatenate(start_logits)
                 end_logits = np.concatenate(end_logits)
-                start_logits = start_logits[: len(validation_dataset)]
-                end_logits = end_logits[: len(validation_dataset)]
+                # start_logits = start_logits[: len(validation_dataset)]
+                # end_logits = end_logits[: len(validation_dataset)]
+                start_logits = start_logits[: stop_batch]
+                end_logits = end_logits[: stop_batch]
                 # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
                 metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
                 # {'exact_match': 83.0, 'f1': 88.25}
