@@ -44,6 +44,8 @@ parser.add_argument('--debug', action='store_true',
                     help='run in debug mode (do not create exp dir)')
 parser.add_argument('--log_interval', type=int, default=10,
                     help='report interval')
+parser.add_argument('--eval_interval', type=int, default=10,
+                    help='report interval')
 parser.add_argument('--work_dir', default='LM-TFM', type=str,
                     help='experiment directory.')
 # moe configs
@@ -154,6 +156,8 @@ if args.model_name == 'xl':
                  local_rank = local_rank,
                  moe_sync_group = moe_sync_group,
                  num_epochs = args.num_epochs, logger = logging,
+                 log_interval = args.log_interval,
+                 eval_interval = args.eval_interval,
                  use_wandb = args.use_wandb)
 elif args.model_name == 'bert':
     train_Bert_MoE(device = device, dist = args.expert_parallel,
@@ -163,6 +167,8 @@ elif args.model_name == 'bert':
                  local_rank = local_rank,
                  moe_sync_group = moe_sync_group,
                  num_epochs = args.num_epochs, logger = logging,
+                 log_interval = args.log_interval,
+                 eval_interval = args.eval_interval,
                  use_wandb = args.use_wandb)
 elif args.model_name == 'gpt':
     train_GPT_MoE(device = device, dist = args.expert_parallel,
@@ -172,6 +178,8 @@ elif args.model_name == 'gpt':
                  local_rank = local_rank,
                  moe_sync_group = moe_sync_group,
                  num_epochs = args.num_epochs, logger = logging,
+                 log_interval = args.log_interval,
+                 eval_interval = args.eval_interval,
                  use_wandb = args.use_wandb)
 else:
     raise Exception('Error: no such a model named {}'.format(args.model_name))

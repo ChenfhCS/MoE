@@ -6,6 +6,7 @@ import evaluate
 import collections
 import wandb
 import os
+import time
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 import torch
@@ -28,6 +29,8 @@ def train_xl_MoE(**kwargs):
     tokenizer = kwargs['tokenizer']
     train_batch_size = kwargs['train_batch_size']
     eval_batch_size = kwargs['eval_batch_size']
+    log_interval = kwargs['log_interval']
+    eval_interval = kwargs['eval_interval']
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
@@ -67,7 +70,8 @@ def train_xl_MoE(**kwargs):
         name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
     )
 
-    progress_bar = tqdm(range(num_training_steps))
+    if local_rank == 0:
+        progress_bar = tqdm(range(num_training_steps))
     best_acc = 0
 
     if use_wandb is True:
@@ -94,9 +98,13 @@ def train_xl_MoE(**kwargs):
         model.train()
         step = 0
         loss_all = 0
+        elapsed_all = 0
+        loss_log = 0
+        elapsed_log = 0
         for batch in train_dataloader:
             # break
             batch = {k: v.to(device) for k, v in batch.items()}
+            batch_start = time.time()
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
@@ -104,11 +112,20 @@ def train_xl_MoE(**kwargs):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
-            progress_bar.update(1)
+            elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb is True:
                 wandb.log({'batch_loss': loss_all/step})
-            break
+            # break
+            if step % log_interval == 0:
+                loss_log = rand(loss_all/step, 2)
+                elapsed_log = rand(elapsed_all/step, 2)
+                loss_all = 0
+                elapsed_all = 0
+
+            if local_rank == 0:
+                progress_bar.set_description('Epoch epoch | Loss {%.2f} | acc {%.2f} | mean batch time {%.2f}'.format(
+                                            epoch, loss_log, best_acc, elapsed_log))
 
         model.eval()
         for batch in eval_dataloader:
@@ -119,14 +136,14 @@ def train_xl_MoE(**kwargs):
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)
             metric.add_batch(predictions=predictions, references=batch["labels"])
-            break
+            # break
         metrics = metric.compute()
         if use_wandb is True:
             wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
         if best_acc < metrics['accuracy']:
             save_model(model,model_name)
             best_acc = metrics['accuracy']
-    
+
     if use_wandb is True:
         wandb.finish()
     del model
@@ -140,6 +157,8 @@ def train_Bert_MoE(**kwargs):
     tokenizer = kwargs['tokenizer']
     train_batch_size = kwargs['train_batch_size']
     eval_batch_size = kwargs['eval_batch_size']
+    log_interval = kwargs['log_interval']
+    eval_interval = kwargs['eval_interval']
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
@@ -407,6 +426,8 @@ def train_GPT_MoE(**kwargs):
     tokenizer = kwargs['tokenizer']
     train_batch_size = kwargs['train_batch_size']
     eval_batch_size = kwargs['eval_batch_size']
+    log_interval = kwargs['log_interval']
+    eval_interval = kwargs['eval_interval']
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
