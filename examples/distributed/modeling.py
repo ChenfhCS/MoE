@@ -20,10 +20,12 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 def save_model(model,name):
-    save_path = dir_path + '/pth/', "%s_checkpoint.bin" % name
+    save_path = dir_path + '/pth/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     model_to_save = model.module if hasattr(model, 'module') else model
-    model_checkpoint = os.path.join(dir_path + '/pth/', "%s_checkpoint.bin" % name)
-    torch.save(model_to_save.state_dict(), model_checkpoint)
+    # model_checkpoint = os.path.join(dir_path + '/pth/', "%s_checkpoint.bin" % name)
+    torch.save(model_to_save.state_dict(), save_path+f'moe_{name}_checkpoint.bin')
     print(f"Saved model checkpoint to {save_path}!")
 
 def Create_MoE_Model(**kwargs):
