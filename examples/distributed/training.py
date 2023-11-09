@@ -118,14 +118,15 @@ def train_xl_MoE(**kwargs):
                 wandb.log({'batch_loss': loss_all/step})
             # break
             if step % log_interval == 0:
-                loss_log = rand(loss_all/step, 2)
-                elapsed_log = rand(elapsed_all/step, 2)
+                loss_log = loss_all/step
+                elapsed_log = elapsed_all/step
                 loss_all = 0
                 elapsed_all = 0
 
             if local_rank == 0:
-                progress_bar.set_description('Epoch epoch | Loss {%.2f} | acc {%.2f} | mean batch time {%.2f}'.format(
+                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
                                             epoch, loss_log, best_acc, elapsed_log))
+                progress_bar.update(1)
 
         model.eval()
         for batch in eval_dataloader:
@@ -370,9 +371,14 @@ def train_Bert_MoE(**kwargs):
         model.train()
         step = 0
         loss_all = 0
+        loss_log = 0
+        elapsed_all = 0
+        elapsed_log = 0
+
         for batch in train_dataloader:
             # break
             batch = {k: v.to(device) for k, v in batch.items()}
+            batch_start = time.time()
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
@@ -380,11 +386,20 @@ def train_Bert_MoE(**kwargs):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
-            progress_bar.update(1)
+            elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb:
                 wandb.log({'batch_loss': loss_all/step})
-            # break
+            if step % log_interval == 0:
+                loss_log = loss_all/step
+                elapsed_log = elapsed_all/step
+                loss_all = 0
+                elapsed_all = 0
+
+            if local_rank == 0:
+                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
+                                            epoch, loss_log, best_acc, elapsed_log))
+                progress_bar.update(1)
         # dict_router = {}
         # index = 0
         model.eval()
@@ -531,9 +546,13 @@ def train_GPT_MoE(**kwargs):
         model.train()
         step = 0
         loss_all = 0
+        elapsed_all = 0
+        loss_log = 0
+        elapsed_log = 0
         for batch in train_dataloader:
             # break
             batch = {k: v.to(device) for k, v in batch.items()}
+            batch_start = time.time()
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
@@ -541,11 +560,21 @@ def train_GPT_MoE(**kwargs):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
-            progress_bar.update(1)
+            elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb:
                 wandb.log({'batch_loss': loss_all/step})
-            break
+            # break
+            if step % log_interval == 0:
+                loss_log = loss_all/step
+                elapsed_log = elapsed_all/step
+                loss_all = 0
+                elapsed_all = 0
+
+            if local_rank == 0:
+                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
+                                            epoch, loss_log, best_acc, elapsed_log))
+                progress_bar.update(1)
         # dict_router = {}
         # index = 0
         model.eval()
