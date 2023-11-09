@@ -123,23 +123,23 @@ def train_xl_MoE(**kwargs):
                                             epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
 
-        if step % eval_interval == 0:
-            model.eval()
-            for batch in eval_dataloader:
-                batch = {k: v.to(device) for k, v in batch.items()}
-                with torch.no_grad():
-                    outputs = model(**batch)
+            if step % eval_interval == 0:
+                model.eval()
+                for batch in eval_dataloader:
+                    batch = {k: v.to(device) for k, v in batch.items()}
+                    with torch.no_grad():
+                        outputs = model(**batch)
 
-                logits = outputs.logits
-                predictions = torch.argmax(logits, dim=-1)
-                metric.add_batch(predictions=predictions, references=batch["labels"])
-                # break
-            metrics = metric.compute()
-            if use_wandb is True:
-                wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
-            if best_acc < metrics['accuracy']:
-                save_model(model,model_name)
-                best_acc = metrics['accuracy']
+                    logits = outputs.logits
+                    predictions = torch.argmax(logits, dim=-1)
+                    metric.add_batch(predictions=predictions, references=batch["labels"])
+                    break
+                metrics = metric.compute()
+                if use_wandb is True:
+                    wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
+                if best_acc < metrics['accuracy']:
+                    save_model(model,model_name)
+                    best_acc = metrics['accuracy']
 
     if use_wandb is True:
         wandb.finish()
@@ -392,31 +392,32 @@ def train_Bert_MoE(**kwargs):
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
-        model.eval()
-        # question_answerer = pipeline("question-answering", model=model)
-        start_logits = []
-        end_logits = []
-        # accelerator.print("Evaluation!")
-        for batch in eval_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            with torch.no_grad():
-                outputs = model(**batch)
+            if step % eval_interval == 0:
+                model.eval()
+                # question_answerer = pipeline("question-answering", model=model)
+                start_logits = []
+                end_logits = []
+                # accelerator.print("Evaluation!")
+                for batch in eval_dataloader:
+                    batch = {k: v.to(device) for k, v in batch.items()}
+                    with torch.no_grad():
+                        outputs = model(**batch)
 
-            start_logits.append(outputs.start_logits.cpu().numpy())
-            end_logits.append(outputs.end_logits.cpu().numpy())
+                    start_logits.append(outputs.start_logits.cpu().numpy())
+                    end_logits.append(outputs.end_logits.cpu().numpy())
 
-        start_logits = np.concatenate(start_logits)
-        end_logits = np.concatenate(end_logits)
-        start_logits = start_logits[: len(validation_dataset)]
-        end_logits = end_logits[: len(validation_dataset)]
-        # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
-        metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
-        # {'exact_match': 83.0, 'f1': 88.25}
-        if use_wandb:
-            wandb.log({'loss': loss_all/step, 'exact_match':metrics['exact_match'],'f1':metrics['f1']}) # 'rouge1': result['rouge1']})
-        if best_acc < metrics['f1']:
-            save_model(model,model_name)
-            best_acc = metrics['exact_match']
+                start_logits = np.concatenate(start_logits)
+                end_logits = np.concatenate(end_logits)
+                start_logits = start_logits[: len(validation_dataset)]
+                end_logits = end_logits[: len(validation_dataset)]
+                # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
+                metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
+                # {'exact_match': 83.0, 'f1': 88.25}
+                if use_wandb:
+                    wandb.log({'loss': loss_all/step, 'exact_match':metrics['exact_match'],'f1':metrics['f1']}) # 'rouge1': result['rouge1']})
+                if best_acc < metrics['f1']:
+                    save_model(model,model_name)
+                    best_acc = metrics['exact_match']
     
     if use_wandb:
         wandb.finish()
@@ -561,33 +562,34 @@ def train_GPT_MoE(**kwargs):
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
-        model.eval()
-        for batch in eval_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            with torch.no_grad():
-                outputs = model.generate(batch['input_ids'])# (**batch)
-                # outputs = model(**batch)
-            # logits = outputs.logits
-            # predictions = torch.argmax(logits, dim=-1)
-            decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
+            if step % eval_interval == 0:
+                model.eval()
+                for batch in eval_dataloader:
+                    batch = {k: v.to(device) for k, v in batch.items()}
+                    with torch.no_grad():
+                        outputs = model.generate(batch['input_ids'])# (**batch)
+                        # outputs = model(**batch)
+                    # logits = outputs.logits
+                    # predictions = torch.argmax(logits, dim=-1)
+                    decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+                    decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
 
-            decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+                    decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-            metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-            # dict_router[index]=(outputs.encoder_router_logits,outputs.decoder_router_logits)
-            # index += 1
-            # with open("./experiment/router_dict_finetune_o.pkl", "wb") as file:
-            #     # print(score_dict)
-            #     pickle.dump(dict_router, file)
-            break
-        result = metric.compute()
+                    metric.add_batch(predictions=decoded_preds, references=decoded_labels)
+                    # dict_router[index]=(outputs.encoder_router_logits,outputs.decoder_router_logits)
+                    # index += 1
+                    # with open("./experiment/router_dict_finetune_o.pkl", "wb") as file:
+                    #     # print(score_dict)
+                    #     pickle.dump(dict_router, file)
+                    break
+                result = metric.compute()
 
-        if use_wandb:
-            wandb.log({'loss': loss_all/step, 'rouge1': result['rouge1']})
-        if best_acc < result['rouge1']:
-            save_model(model,model_name)
-            best_acc = result['rouge1']
+                if use_wandb:
+                    wandb.log({'loss': loss_all/step, 'rouge1': result['rouge1']})
+                if best_acc < result['rouge1']:
+                    save_model(model,model_name)
+                    best_acc = result['rouge1']
         # break
     # print(result)
     if use_wandb:
