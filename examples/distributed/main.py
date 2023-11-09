@@ -128,7 +128,7 @@ if torch.cuda.is_available():
 
 # load model
 model, tokenizer = Create_MoE_Model(model_name = args.model_name, num_layers = args.num_layer, 
-                                    moe = args.moe, moe_num_experts = args.moe_num_experts,
+                                    moe = args.moe, moe_num_experts = args.moe_num_experts // ep_group_world_size,
                                     moe_top_k = args.moe_top_k, moe_group = moe_comm_group,
                                     moe_world_size = world_size)
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
