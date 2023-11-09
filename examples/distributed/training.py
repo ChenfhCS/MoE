@@ -125,7 +125,7 @@ def train_xl_MoE(**kwargs):
 
             if step % eval_interval == 0:
                 model.eval()
-                for batch in eval_dataloader:
+                for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
                         outputs = model(**batch)
@@ -133,7 +133,8 @@ def train_xl_MoE(**kwargs):
                     logits = outputs.logits
                     predictions = torch.argmax(logits, dim=-1)
                     metric.add_batch(predictions=predictions, references=batch["labels"])
-                    break
+                    if idx >= 10:
+                        break
                 metrics = metric.compute()
                 if use_wandb is True:
                     wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
@@ -398,14 +399,15 @@ def train_Bert_MoE(**kwargs):
                 start_logits = []
                 end_logits = []
                 # accelerator.print("Evaluation!")
-                for batch in eval_dataloader:
+                for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
                         outputs = model(**batch)
 
                     start_logits.append(outputs.start_logits.cpu().numpy())
                     end_logits.append(outputs.end_logits.cpu().numpy())
-
+                    if idx >= 10:
+                        break
                 start_logits = np.concatenate(start_logits)
                 end_logits = np.concatenate(end_logits)
                 start_logits = start_logits[: len(validation_dataset)]
@@ -564,7 +566,7 @@ def train_GPT_MoE(**kwargs):
         # index = 0
             if step % eval_interval == 0:
                 model.eval()
-                for batch in eval_dataloader:
+                for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
                         outputs = model.generate(batch['input_ids'])# (**batch)
@@ -577,12 +579,8 @@ def train_GPT_MoE(**kwargs):
                     decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
                     metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-                    # dict_router[index]=(outputs.encoder_router_logits,outputs.decoder_router_logits)
-                    # index += 1
-                    # with open("./experiment/router_dict_finetune_o.pkl", "wb") as file:
-                    #     # print(score_dict)
-                    #     pickle.dump(dict_router, file)
-                    break
+                    if idx >= 10:
+                        break
                 result = metric.compute()
 
                 if use_wandb:
