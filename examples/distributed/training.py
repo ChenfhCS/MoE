@@ -66,9 +66,8 @@ def train_xl_MoE(**kwargs):
     tokenized_datasets = tokenized_datasets.remove_columns(["idx"])
 
     datasampler = DistributedSampler(tokenized_datasets["train"], num_replicas=world_size, rank=global_rank)
-    train_dataloader = DataLoader(tokenized_datasets["train"].shuffle(seed=42), collate_fn=data_collator,
-                                    shuffle=True, batch_size=train_batch_size,
-                                    sampler = datasampler)
+    train_dataloader = DataLoader(tokenized_datasets["train"], collate_fn=data_collator, 
+                                    batch_size=train_batch_size, sampler = datasampler)
     # train_dataloader = DataLoader(tokenized_datasets["train"].shuffle(seed=42), collate_fn=data_collator,shuffle=True, batch_size=train_batch_size)
     eval_dataloader = DataLoader(tokenized_datasets["validation"], collate_fn=data_collator, batch_size=eval_batch_size)
     optimizer = torch.optim.Adam(model.parameters(),
@@ -336,7 +335,7 @@ def train_Bert_MoE(**kwargs):
     batch_size=train_batch_size
     datasampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size,
+        train_dataset, collate_fn=data_collator, batch_size=batch_size,
         sampler = datasampler
     )
     # train_dataloader = DataLoader(
@@ -510,7 +509,7 @@ def train_GPT_MoE(**kwargs):
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     datasampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size,
+        train_dataset, collate_fn=data_collator, batch_size=batch_size,
         sampler = datasampler
     )
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
