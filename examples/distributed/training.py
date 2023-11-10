@@ -88,8 +88,8 @@ def train_xl_MoE(**kwargs):
         project="moe",
         name='moe-xl-glue',
         settings=wandb.Settings(
-        _stats_sample_rate_seconds=0.5,
-        _stats_samples_to_average=0.5,
+        _stats_sample_rate_seconds=0.1,
+        _stats_samples_to_average=1,
         ),
         # track hyperparameters and run metadata
         config={
@@ -126,13 +126,13 @@ def train_xl_MoE(**kwargs):
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb is True and local_rank == 0:
-                # wandb.log({'batch_loss': loss_all/step})
-                wandb.log({'batch_loss': loss_all})
+                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all})
             # break
 
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
 
             if step % eval_interval == 0:
@@ -354,8 +354,8 @@ def train_Bert_MoE(**kwargs):
         project="moe",
         name='moe-bert-squad',
         settings=wandb.Settings(
-        _stats_sample_rate_seconds=0.5,
-        _stats_samples_to_average=0.5,
+        _stats_sample_rate_seconds=0.1,
+        _stats_samples_to_average=1,
         ),
         # track hyperparameters and run metadata
         config={
@@ -408,11 +408,11 @@ def train_Bert_MoE(**kwargs):
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb is True and local_rank == 0:
-                # wandb.log({'batch_loss': loss_all/step})
-                wandb.log({'batch_loss': loss_all})
+                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all})
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
@@ -546,8 +546,8 @@ def train_GPT_MoE(**kwargs):
         project="moe",
         name='moe-gpt2-samsum',
         settings=wandb.Settings(
-        _stats_sample_rate_seconds=0.5,
-        _stats_samples_to_average=0.5,
+        _stats_sample_rate_seconds=0.1,
+        _stats_samples_to_average=1,
         ),
         # track hyperparameters and run metadata
         config={
@@ -584,12 +584,12 @@ def train_GPT_MoE(**kwargs):
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb is True and local_rank == 0:
-                # wandb.log({'batch_loss': loss_all/step})
-                wandb.log({'batch_loss': loss_all})
+                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all})
             # break
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
             torch.cuda.empty_cache()
         # dict_router = {}
