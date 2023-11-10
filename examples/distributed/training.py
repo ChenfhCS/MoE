@@ -78,16 +78,14 @@ def train_xl_MoE(**kwargs):
 
     if use_wandb is True:
         wandb.init(    # set the wandb project where this run will be logged
-        project="switch-8-samsum",
-        name='xl',
+        project="moe",
+        name='moe-xl-glue',
         # track hyperparameters and run metadata
-        
         config={
         "learning_rate": 5e-05,
         "architecture": "xl",
-
         "dataset": "samsum",
-        "epochs": 8,
+        "epochs": 1,
         }
         )
 
@@ -110,19 +108,20 @@ def train_xl_MoE(**kwargs):
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
-            loss_all += loss.item()
+            loss_all = loss.item()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb is True:
-                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all/step})
+                wandb.log({'batch_loss': loss_all})
             # break
 
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
 
             if step % eval_interval == 0:
@@ -334,15 +333,14 @@ def train_Bert_MoE(**kwargs):
     # metric = evaluate.load("squad_v2" if data_args.version_2_with_negative else "squad")
     if use_wandb:
         wandb.init(    # set the wandb project where this run will be logged
-        project="switch-8-samsum",
-        name='bert', # config1[some_args]['model'],
+        project="moe",
+        name='moe-bert-squad',
         # track hyperparameters and run metadata
-        
         config={
-        "learning_rate": 3e-5,
-        "architecture": model_name,
-        "dataset": "samsum",
-        "epochs": num_epochs,
+        "learning_rate": 5e-05,
+        "architecture": "bert",
+        "dataset": "squad",
+        "epochs": 1,
         }
         )
 
@@ -381,17 +379,18 @@ def train_Bert_MoE(**kwargs):
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
-            loss_all += loss.item()
+            loss_all = loss.item()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb:
-                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all/step})
+                wandb.log({'batch_loss': loss_all})
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
         # dict_router = {}
         # index = 0
@@ -518,15 +517,14 @@ def train_GPT_MoE(**kwargs):
 
     if use_wandb:
         wandb.init(    # set the wandb project where this run will be logged
-        project="switch-8-samsum",
-        name='gpt',
+        project="moe",
+        name='moe-gpt2-samsum',
         # track hyperparameters and run metadata
-        
         config={
         "learning_rate": 5e-05,
-        "architecture": "gpt",
+        "architecture": "gpt2",
         "dataset": "samsum",
-        "epochs": num_epochs,
+        "epochs": 1,
         }
         )
 
@@ -549,18 +547,19 @@ def train_GPT_MoE(**kwargs):
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
-            loss_all += loss.item()
+            loss_all = loss.item()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
             if use_wandb:
-                wandb.log({'batch_loss': loss_all/step})
+                # wandb.log({'batch_loss': loss_all/step})
+                wandb.log({'batch_loss': loss_all})
             # break
             if local_rank == 0:
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                                            epoch, (loss_all), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
             torch.cuda.empty_cache()
         # dict_router = {}
