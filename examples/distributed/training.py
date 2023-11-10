@@ -87,6 +87,10 @@ def train_xl_MoE(**kwargs):
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-xl-glue',
+        settings=wandb.Settings(
+        _stats_sample_rate_seconds=0.5,
+        _stats_samples_to_average=0.5,
+        ),
         # track hyperparameters and run metadata
         config={
         "learning_rate": 5e-05,
@@ -349,6 +353,10 @@ def train_Bert_MoE(**kwargs):
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-bert-squad',
+        settings=wandb.Settings(
+        _stats_sample_rate_seconds=0.5,
+        _stats_samples_to_average=0.5,
+        ),
         # track hyperparameters and run metadata
         config={
         "learning_rate": 5e-05,
@@ -537,6 +545,10 @@ def train_GPT_MoE(**kwargs):
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-gpt2-samsum',
+        settings=wandb.Settings(
+        _stats_sample_rate_seconds=0.5,
+        _stats_samples_to_average=0.5,
+        ),
         # track hyperparameters and run metadata
         config={
         "learning_rate": 5e-05,
