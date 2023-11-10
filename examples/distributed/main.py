@@ -59,8 +59,8 @@ parser.add_argument('--fuse_token', action='store_true',
                     help='whether to fuse tokens')
 parser.add_argument('--expert_parallel', action='store_true',
                     help='expert parallel')
-parser.add_argument('--moe_group_size', action='store_true',
-                    help='expert parallel')
+parser.add_argument('--moe_world_size', type=int, default=1,
+                    help='number of devices for expert parallelism')
 args = parser.parse_args()
 assert args.moe_num_experts >= args.moe_top_k, "must have moe-num-expert >= moe-top_k"
 
@@ -93,7 +93,7 @@ else:
     logging = None
 
 # ep: expert parallel; dp: data parallel
-ep_group_world_size = args.moe_group_size #Within a group, all GPUs use expert parallel
+ep_group_world_size = args.moe_world_size #Within a group, all GPUs use expert parallel
 ep_group_rank = global_rank // ep_group_world_size # which expert parallel group the GPU belongs to 
 dp_group_world_size = world_size // ep_group_world_size # how many groups
 dp__group_rank = global_rank % ep_group_world_size # which data parallel group the GPU belongs to
