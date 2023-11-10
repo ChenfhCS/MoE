@@ -114,7 +114,7 @@ if args.expert_parallel:
             print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
     # data parallel group
     for j in range(ep_group_world_size):
-        moe_sync_group_list = [j + dp_group_world_size * i for i in range(dp_group_world_size)]  # GPUs use the same experts (from different group) will share parameters
+        moe_sync_group_list = [j + ep_group_world_size * i for i in range(dp_group_world_size)]  # GPUs use the same experts (from different group) will share parameters
         group = torch.distributed.new_group(moe_sync_group_list)
         if j == dp__group_rank:
             moe_sync_group = group
