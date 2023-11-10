@@ -15,7 +15,7 @@ if [[ $1 == 'xl' ]]; then
         --moe-num-experts 4 \
         --moe-top-k 2 \
         --expert_parallel \
-        --moe_world_size = 1 \
+        --moe_world_size 1 \
         # --use_wandb \
         ${@:2}
 elif [[ $1 == 'bert' ]]; then
@@ -34,12 +34,12 @@ elif [[ $1 == 'bert' ]]; then
         --moe-num-experts 4 \
         --moe-top-k 2 \
         --expert_parallel \
-        --moe_world_size = 1 \
+        --moe_world_size 1 \
         # --use_wandb \
         ${@:2}
 elif [[ $1 == 'gpt' ]]; then
     echo 'Run distributed training on MoE-GPT2...'
-    torchrun --nproc_per_node 4 --nnodes 1 --node_rank 0 --master_addr "127.0.0.1" --master_port 1234 main.py \
+    torchrun --nproc_per_node 2 --nnodes 1 --node_rank 0 --master_addr "127.0.0.1" --master_port 1234 main.py \
         --model_name 'gpt' \
         --num_layer 12 \
         --train_batch_size 2 \
@@ -53,7 +53,7 @@ elif [[ $1 == 'gpt' ]]; then
         --moe-num-experts 1 \
         --moe-top-k 1 \
         --expert_parallel \
-        --moe_world_size = 1 \
+        --moe_world_size 1 \
         # --use_wandb \
         ${@:2}   
 else
