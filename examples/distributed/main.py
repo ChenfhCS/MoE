@@ -59,6 +59,8 @@ parser.add_argument('--fuse_token', action='store_true',
                     help='whether to fuse tokens')
 parser.add_argument('--expert_parallel', action='store_true',
                     help='expert parallel')
+parser.add_argument('--moe_group_size', action='store_true',
+                    help='expert parallel')
 args = parser.parse_args()
 assert args.moe_num_experts >= args.moe_top_k, "must have moe-num-expert >= moe-top_k"
 
@@ -91,7 +93,7 @@ else:
     logging = None
 
 # ep: expert parallel; dp: data parallel
-ep_group_world_size = world_size #Within a group, all GPUs use expert parallel
+ep_group_world_size = args.moe_group_size #Within a group, all GPUs use expert parallel
 ep_group_rank = global_rank // ep_group_world_size # which expert parallel group the GPU belongs to 
 dp_group_world_size = world_size // ep_group_world_size # how many groups
 dp__group_rank = global_rank % ep_group_world_size # which data parallel group the GPU belongs to
@@ -134,7 +136,7 @@ if torch.cuda.is_available():
 model, tokenizer = Create_MoE_Model(model_name = args.model_name, num_layers = args.num_layer, 
                                     moe = args.moe, moe_num_experts = args.moe_num_experts // ep_group_world_size,
                                     moe_top_k = args.moe_top_k, moe_group = moe_comm_group,
-                                    moe_world_size = world_size)
+                                    moe_world_size = ep_group_world_size)
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
 
 if local_rank == 0:
