@@ -568,7 +568,10 @@ def train_GPT_MoE(**kwargs):
                 for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
-                        outputs = model.module.generate(batch['input_ids'])# (**batch)
+                        if dist:
+                            outputs = model.module.generate(batch['input_ids'])# (**batch)
+                        else:
+                            outputs = model.generate(batch['input_ids'])# (**batch)
                         # outputs = model(**batch)
                     # logits = outputs.logits
                     # predictions = torch.argmax(logits, dim=-1)
