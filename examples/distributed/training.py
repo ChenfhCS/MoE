@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from modeling import Create_MoE_Model, save_model
+from torch.utils.data.distributed import DistributedSampler
 from fmoe.distributed import DistributedGroupedDataParallel as DDP
 
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
