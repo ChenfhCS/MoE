@@ -76,6 +76,20 @@ else:
     global_rank = 0
     world_size = 1
 
+# log file
+tokyo = pytz.timezone('Asia/Tokyo')
+# 获取当前东京时间
+current_tokyo_time = datetime.datetime.now(tokyo)
+# 格式化时间
+time_stamp = current_tokyo_time.strftime('%Y%m%d-%H%M%S')
+args.work_dir = '{}'.format(args.work_dir)
+log_suffix = time_stamp + f'[{str(args.moe_num_experts)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}]'
+args.work_dir = os.path.join(args.work_dir, log_suffix)
+if local_rank == 0:
+    logging = create_exp_dir(args.work_dir, debug=args.debug)
+else:
+    logging = None
+
 # ep: expert parallel; dp: data parallel
 ep_group_world_size = world_size #Within a group, all GPUs use expert parallel
 ep_group_rank = global_rank // ep_group_world_size # which expert parallel group the GPU belongs to 
@@ -106,20 +120,6 @@ if args.expert_parallel:
 else:
     moe_comm_group = None
     moe_sync_group = None
-
-# log file
-tokyo = pytz.timezone('Asia/Tokyo')
-# 获取当前东京时间
-current_tokyo_time = datetime.datetime.now(tokyo)
-# 格式化时间
-time_stamp = current_tokyo_time.strftime('%Y%m%d-%H%M%S')
-args.work_dir = '{}'.format(args.work_dir)
-log_suffix = time_stamp + f'[{str(args.moe_num_experts)}Exp_Fusion_{args.fuse_token}_top{args.moe_top_k}]'
-args.work_dir = os.path.join(args.work_dir, log_suffix)
-if local_rank == 0:
-    logging = create_exp_dir(args.work_dir, debug=args.debug)
-else:
-    logging = None
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)

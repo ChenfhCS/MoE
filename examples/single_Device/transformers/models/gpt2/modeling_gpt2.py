@@ -416,7 +416,7 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
 
 
 class GPT2Block(nn.Module):
-    def __init__(self, config, layer_idx=None):
+    def __init__(self, config, moe_group, layer_idx=None):
         super().__init__()
         hidden_size = config.hidden_size
         inner_dim = config.n_inner if config.n_inner is not None else 4 * hidden_size
@@ -439,7 +439,7 @@ class GPT2Block(nn.Module):
                                                           dropout=config.resid_pdrop,
                                                           moe_num_expert=config.moe_num_experts,
                                                           moe_top_k=config.moe_top_k,
-                                                          moe_group=config.moe_group,
+                                                          moe_group=moe_group,
                                                           moe_world_size=config.moe_world_size)
 
     def forward(
@@ -530,8 +530,8 @@ class GPT2PreTrainedModel(PreTrainedModel):
     _no_split_modules = ["GPT2Block"]
     _skip_keys_device_placement = "past_key_values"
 
-    def __init__(self, *inputs, **kwargs):
-        super().__init__(*inputs, **kwargs)
+    # def __init__(self, *inputs, **kwargs):
+    #     super().__init__(*inputs, **kwargs)
 
     def _init_weights(self, module):
         """Initialize the weights."""
@@ -749,8 +749,8 @@ class GPT2Model(GPT2PreTrainedModel):
     _keys_to_ignore_on_load_unexpected = [r"h\.\d+\.attn\.bias", r"h\.\d+\.attn\.masked_bias"]
     _keys_to_ignore_on_load_missing = [r"attn.masked_bias", r"h\.\d+\.attn\.masked_bias", r"h\.\d+\.attn\.bias"]
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, moe_group):
+        super().__init__(config, moe_group)
 
         self.embed_dim = config.hidden_size
 
@@ -758,7 +758,7 @@ class GPT2Model(GPT2PreTrainedModel):
         self.wpe = nn.Embedding(config.max_position_embeddings, self.embed_dim)
 
         self.drop = nn.Dropout(config.embd_pdrop)
-        self.h = nn.ModuleList([GPT2Block(config, layer_idx=i) for i in range(config.num_hidden_layers)])
+        self.h = nn.ModuleList([GPT2Block(config, moe_group, layer_idx=i) for i in range(config.num_hidden_layers)])
         self.ln_f = nn.LayerNorm(self.embed_dim, eps=config.layer_norm_epsilon)
 
         # Model parallel
@@ -1038,11 +1038,11 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"lm_head.weight"]
     _keys_to_ignore_on_load_unexpected = [r"h\.\d+\.attn\.masked_bias", r"h\.\d+\.attn\.bias"]
 
-    def __init__(self, config):
-        super().__init__(config)
-        self.transformer = GPT2Model(config)
+    def __init__(self, config, moe_group):
+        super().__init__(config, moe_group)
+        self.transformer = GPT2Model(config, moe_group)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-
+        
         # Model parallel
         self.model_parallel = False
         self.device_map = None

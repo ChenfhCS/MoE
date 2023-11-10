@@ -124,15 +124,18 @@ def Create_MoE_Model(**kwargs):
         config.moe = kwargs['moe']
         config.moe_num_experts = kwargs['moe_num_experts']
         config.moe_top_k = kwargs['moe_top_k']
-        config.moe_group = kwargs['moe_group']
+        # config.moe_group = kwargs['moe_group']
+        # config.moe_group = None
         config.moe_world_size = kwargs['moe_world_size']
 
-        modelForLoad = GPT2LMHeadModel.from_pretrained("gpt2",config=config_load)
+        # modelForLoad = GPT2LMHeadModel.from_pretrained("gpt2",config=config_load)
+        modelForLoad = GPT2LMHeadModel(config=config_load, moe_group = kwargs['moe_group'])
         if config.moe_num_experts == 0:
             return modelForLoad,tokenizer
         # tokenizer = AutoTokenizer.from_pretrained("cwh/gpt2-medium-finetuned-wikitext2")
         # model = AutoModelForCausalLM.from_pretrained("cwh/gpt2-medium-finetuned-wikitext2")
-        mymoe = GPT2LMHeadModel.from_pretrained("gpt2", config=config)
+        # mymoe = GPT2LMHeadModel.from_pretrained("gpt2", config=config)
+        mymoe = GPT2LMHeadModel(config=config, moe_group = kwargs['moe_group'])
         # print(modelForLoad.state_dict().keys(),mymoe.state_dict().keys())
         mymoeParam = mymoe.state_dict()
         bertParam = modelForLoad.state_dict()

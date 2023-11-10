@@ -560,6 +560,7 @@ def train_GPT_MoE(**kwargs):
                 progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
                                             epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
                 progress_bar.update(1)
+            torch.cuda.empty_cache()
         # dict_router = {}
         # index = 0
             if step % eval_interval == 0:
@@ -567,7 +568,7 @@ def train_GPT_MoE(**kwargs):
                 for idx, batch in enumerate(eval_dataloader):
                     batch = {k: v.to(device) for k, v in batch.items()}
                     with torch.no_grad():
-                        outputs = model.generate(batch['input_ids'])# (**batch)
+                        outputs = model.module.generate(batch['input_ids'])# (**batch)
                         # outputs = model(**batch)
                     # logits = outputs.logits
                     # predictions = torch.argmax(logits, dim=-1)
