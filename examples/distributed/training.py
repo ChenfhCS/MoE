@@ -22,6 +22,8 @@ from tqdm.auto import tqdm
 from modeling import Create_MoE_Model, save_model
 from fmoe.distributed import DistributedGroupedDataParallel as DDP
 
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+
 # train transformer-xl
 def train_xl_MoE(**kwargs):
     device = kwargs['device']
