@@ -36,7 +36,9 @@ def train_xl_MoE(**kwargs):
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
+    world_size = kwargs['world_size']
     local_rank = kwargs['local_rank']
+    global_rank = kwargs['global_rank']
     moe_sync_group = kwargs['moe_sync_group']
     dist = kwargs['dist']
 
@@ -61,7 +63,12 @@ def train_xl_MoE(**kwargs):
     tokenized_datasets.set_format("torch")
     tokenized_datasets = tokenized_datasets.remove_columns(["sentence"])
     tokenized_datasets = tokenized_datasets.remove_columns(["idx"])
-    train_dataloader = DataLoader(tokenized_datasets["train"].shuffle(seed=42), collate_fn=data_collator,shuffle=True, batch_size=train_batch_size)
+
+    datasampler = DistributedSampler(tokenized_datasets["train"], num_replicas=world_size, rank=global_rank)
+    train_dataloader = DataLoader(tokenized_datasets["train"].shuffle(seed=42), collate_fn=data_collator,
+                                    shuffle=True, batch_size=train_batch_size,
+                                    sampler = datasampler)
+    # train_dataloader = DataLoader(tokenized_datasets["train"].shuffle(seed=42), collate_fn=data_collator,shuffle=True, batch_size=train_batch_size)
     eval_dataloader = DataLoader(tokenized_datasets["validation"], collate_fn=data_collator, batch_size=eval_batch_size)
     optimizer = torch.optim.Adam(model.parameters(),
                                 lr=5e-5,
@@ -161,7 +168,9 @@ def train_Bert_MoE(**kwargs):
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
+    world_size = kwargs['world_size']
     local_rank = kwargs['local_rank']
+    global_rank = kwargs['global_rank']
     moe_sync_group = kwargs['moe_sync_group']
     dist = kwargs['dist']
     def compute_metrics(start_logits, end_logits, features, examples):
@@ -324,9 +333,14 @@ def train_Bert_MoE(**kwargs):
     data_collator = DefaultDataCollator()
 
     batch_size=train_batch_size
+    datasampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size
+        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size,
+        sampler = datasampler
     )
+    # train_dataloader = DataLoader(
+    #     train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size
+    # )
     eval_dataloader = DataLoader(validation_dataset, collate_fn=data_collator, batch_size=batch_size)
     num_epochs = num_epochs
     model_name="bert" # config1[some_args]['model']
@@ -438,7 +452,9 @@ def train_GPT_MoE(**kwargs):
     num_epochs = kwargs['num_epochs']
     logger = kwargs['logger']
     use_wandb = kwargs['use_wandb']
+    world_size = kwargs['world_size']
     local_rank = kwargs['local_rank']
+    global_rank = kwargs['global_rank']
     moe_sync_group = kwargs['moe_sync_group']
     dist = kwargs['dist']
     from transformers import DataCollatorWithPadding
@@ -491,8 +507,10 @@ def train_GPT_MoE(**kwargs):
     )
     
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    datasampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size
+        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=batch_size,
+        sampler = datasampler
     )
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
 
