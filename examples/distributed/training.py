@@ -76,7 +76,7 @@ def train_xl_MoE(**kwargs):
         progress_bar = tqdm(range(num_training_steps))
     best_acc = 0
 
-    if use_wandb is True:
+    if use_wandb is True and local_rank == 0:
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-xl-glue',
@@ -114,7 +114,7 @@ def train_xl_MoE(**kwargs):
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
-            if use_wandb is True:
+            if use_wandb is True and local_rank == 0:
                 # wandb.log({'batch_loss': loss_all/step})
                 wandb.log({'batch_loss': loss_all})
             # break
@@ -137,13 +137,13 @@ def train_xl_MoE(**kwargs):
                     if idx >= 10:
                         break
                 metrics = metric.compute()
-                if use_wandb is True:
+                if use_wandb is True and local_rank == 0:
                     wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
                 if best_acc < metrics['accuracy']:
                     save_model(model,model_name)
                     best_acc = metrics['accuracy']
 
-    if use_wandb is True:
+    if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
     del dataset
@@ -331,7 +331,7 @@ def train_Bert_MoE(**kwargs):
     num_epochs = num_epochs
     model_name="bert" # config1[some_args]['model']
     # metric = evaluate.load("squad_v2" if data_args.version_2_with_negative else "squad")
-    if use_wandb:
+    if use_wandb is True and local_rank == 0:
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-bert-squad',
@@ -385,7 +385,7 @@ def train_Bert_MoE(**kwargs):
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
-            if use_wandb:
+            if use_wandb is True and local_rank == 0:
                 # wandb.log({'batch_loss': loss_all/step})
                 wandb.log({'batch_loss': loss_all})
             if local_rank == 0:
@@ -414,13 +414,13 @@ def train_Bert_MoE(**kwargs):
                 # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
                 metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
                 # {'exact_match': 83.0, 'f1': 88.25}
-                if use_wandb:
+                if use_wandb is True and local_rank == 0:
                     wandb.log({'loss': loss_all/step, 'exact_match':metrics['exact_match'],'f1':metrics['f1']}) # 'rouge1': result['rouge1']})
                 if best_acc < metrics['f1']:
                     save_model(model,model_name)
                     best_acc = metrics['exact_match']
     
-    if use_wandb:
+    if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
     del datasets
@@ -515,7 +515,7 @@ def train_GPT_MoE(**kwargs):
     best_acc = 0
     model_name='gpt'
 
-    if use_wandb:
+    if use_wandb is True and local_rank == 0:
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
         name='moe-gpt2-samsum',
@@ -553,7 +553,7 @@ def train_GPT_MoE(**kwargs):
             optimizer.zero_grad()
             elapsed_all += time.time() - batch_start
             step += 1
-            if use_wandb:
+            if use_wandb is True and local_rank == 0:
                 # wandb.log({'batch_loss': loss_all/step})
                 wandb.log({'batch_loss': loss_all})
             # break
@@ -586,14 +586,14 @@ def train_GPT_MoE(**kwargs):
                         break
                 result = metric.compute()
 
-                if use_wandb:
+                if use_wandb is True and local_rank == 0:
                     wandb.log({'loss': loss_all/step, 'rouge1': result['rouge1']})
                 if best_acc < result['rouge1']:
                     save_model(model,model_name)
                     best_acc = result['rouge1']
         # break
     # print(result)
-    if use_wandb:
+    if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
     del dataset
