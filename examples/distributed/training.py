@@ -157,7 +157,7 @@ def train_xl_MoE(**kwargs):
     except KeyboardInterrupt:
         if use_wandb is True and local_rank == 0:
             wandb.finish()
-            logging('Exiting from training early')
+            logger('Exiting from training early')
     if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
@@ -448,7 +448,7 @@ def train_Bert_MoE(**kwargs):
     except KeyboardInterrupt:
         if use_wandb is True and local_rank == 0:
             wandb.finish()
-            logging('Exiting from training early')
+            logger('Exiting from training early')
     if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
@@ -631,7 +631,7 @@ def train_GPT_MoE(**kwargs):
     except KeyboardInterrupt:
         if use_wandb is True and local_rank == 0:
             wandb.finish()
-            logging('Exiting from training early')
+            logger('Exiting from training early')
 
     if use_wandb is True and local_rank == 0:
         wandb.finish()
