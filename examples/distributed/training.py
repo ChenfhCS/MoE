@@ -105,55 +105,59 @@ def train_xl_MoE(**kwargs):
         model = DDP(model, device_ids=[local_rank], moe_sync_group = moe_sync_group)
         model._sync_params()
 
-    for epoch in range(num_epochs):
-        model.train()
-        step = 0
-        loss_all = 0
-        elapsed_all = 0
-        loss_log = 0
-        elapsed_log = 0
-        for batch in train_dataloader:
-            # break
-            batch = {k: v.to(device) for k, v in batch.items()}
-            batch_start = time.time()
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            loss_all = loss.item()
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            elapsed_all += time.time() - batch_start
-            step += 1
-            if use_wandb is True and local_rank == 0:
-                wandb.log({'batch_loss': loss_all/step})
-                # wandb.log({'batch_loss': loss_all})
-            # break
-
-            if local_rank == 0:
-                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
-                progress_bar.update(1)
-
-            if step % eval_interval == 0:
-                model.eval()
-                for idx, batch in enumerate(eval_dataloader):
-                    batch = {k: v.to(device) for k, v in batch.items()}
-                    with torch.no_grad():
-                        outputs = model(**batch)
-
-                    logits = outputs.logits
-                    predictions = torch.argmax(logits, dim=-1)
-                    metric.add_batch(predictions=predictions, references=batch["labels"])
-                    if idx >= 10:
-                        break
-                metrics = metric.compute()
+    try:
+        for epoch in range(num_epochs):
+            model.train()
+            step = 0
+            loss_all = 0
+            elapsed_all = 0
+            loss_log = 0
+            elapsed_log = 0
+            for batch in train_dataloader:
+                # break
+                batch = {k: v.to(device) for k, v in batch.items()}
+                batch_start = time.time()
+                outputs = model(**batch)
+                loss = outputs.loss
+                loss.backward()
+                loss_all = loss.item()
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                elapsed_all += time.time() - batch_start
+                step += 1
                 if use_wandb is True and local_rank == 0:
-                    wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
-                if best_acc < metrics['accuracy']:
-                    save_model(model,model_name)
-                    best_acc = metrics['accuracy']
+                    wandb.log({'batch_loss': loss_all/step})
+                    # wandb.log({'batch_loss': loss_all})
+                # break
 
+                if local_rank == 0:
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.update(1)
+
+                if step % eval_interval == 0:
+                    model.eval()
+                    for idx, batch in enumerate(eval_dataloader):
+                        batch = {k: v.to(device) for k, v in batch.items()}
+                        with torch.no_grad():
+                            outputs = model(**batch)
+
+                        logits = outputs.logits
+                        predictions = torch.argmax(logits, dim=-1)
+                        metric.add_batch(predictions=predictions, references=batch["labels"])
+                        if idx >= 10:
+                            break
+                    metrics = metric.compute()
+                    if use_wandb is True and local_rank == 0:
+                        wandb.log({'loss': loss_all/step, 'acc':metrics['accuracy']}) # 'rouge1': result['rouge1']})
+                    if best_acc < metrics['accuracy']:
+                        save_model(model,model_name)
+                        best_acc = metrics['accuracy']
+    except KeyboardInterrupt:
+        if use_wandb is True and local_rank == 0:
+            wandb.finish()
+            logging('Exiting from training early')
     if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
@@ -385,63 +389,66 @@ def train_Bert_MoE(**kwargs):
     if dist:
         model = DDP(model, device_ids=[local_rank], moe_sync_group = moe_sync_group)
         model._sync_params()
+    try:
+        for epoch in range(num_epochs):
+            model.train()
+            step = 0
+            loss_all = 0
+            loss_log = 0
+            elapsed_all = 0
+            elapsed_log = 0
 
-    for epoch in range(num_epochs):
-        model.train()
-        step = 0
-        loss_all = 0
-        loss_log = 0
-        elapsed_all = 0
-        elapsed_log = 0
-
-        for batch in train_dataloader:
-            # break
-            batch = {k: v.to(device) for k, v in batch.items()}
-            batch_start = time.time()
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            loss_all = loss.item()
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            elapsed_all += time.time() - batch_start
-            step += 1
-            if use_wandb is True and local_rank == 0:
-                wandb.log({'batch_loss': loss_all/step})
-                # wandb.log({'batch_loss': loss_all})
-            if local_rank == 0:
-                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
-                progress_bar.update(1)
-        # dict_router = {}
-        # index = 0
-            if step % eval_interval == 0:
-                model.eval()
-                # question_answerer = pipeline("question-answering", model=model)
-                start_logits = []
-                end_logits = []
-                # accelerator.print("Evaluation!")
-                for idx, batch in enumerate(eval_dataloader):
-                    batch = {k: v.to(device) for k, v in batch.items()}
-                    with torch.no_grad():
-                        outputs = model(**batch)
-
-                    start_logits.append(outputs.start_logits.cpu().numpy())
-                    end_logits.append(outputs.end_logits.cpu().numpy())
-                start_logits = np.concatenate(start_logits)
-                end_logits = np.concatenate(end_logits)
-                start_logits = start_logits[: len(validation_dataset)]
-                end_logits = end_logits[: len(validation_dataset)]
-                # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
-                metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
-                # {'exact_match': 83.0, 'f1': 88.25}
+            for batch in train_dataloader:
+                # break
+                batch = {k: v.to(device) for k, v in batch.items()}
+                batch_start = time.time()
+                outputs = model(**batch)
+                loss = outputs.loss
+                loss.backward()
+                loss_all = loss.item()
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                elapsed_all += time.time() - batch_start
+                step += 1
                 if use_wandb is True and local_rank == 0:
-                    wandb.log({'loss': loss_all/step, 'exact_match':metrics['exact_match'],'f1':metrics['f1']}) # 'rouge1': result['rouge1']})
-                if best_acc < metrics['f1']:
-                    save_model(model,model_name)
-                    best_acc = metrics['exact_match']
-    
+                    wandb.log({'batch_loss': loss_all/step})
+                    # wandb.log({'batch_loss': loss_all})
+                if local_rank == 0:
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.update(1)
+            # dict_router = {}
+            # index = 0
+                if step % eval_interval == 0:
+                    model.eval()
+                    # question_answerer = pipeline("question-answering", model=model)
+                    start_logits = []
+                    end_logits = []
+                    # accelerator.print("Evaluation!")
+                    for idx, batch in enumerate(eval_dataloader):
+                        batch = {k: v.to(device) for k, v in batch.items()}
+                        with torch.no_grad():
+                            outputs = model(**batch)
+
+                        start_logits.append(outputs.start_logits.cpu().numpy())
+                        end_logits.append(outputs.end_logits.cpu().numpy())
+                    start_logits = np.concatenate(start_logits)
+                    end_logits = np.concatenate(end_logits)
+                    start_logits = start_logits[: len(validation_dataset)]
+                    end_logits = end_logits[: len(validation_dataset)]
+                    # metrics = compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
+                    metrics = compute_metrics(start_logits, end_logits, eval_dataset, datasets["validation"])
+                    # {'exact_match': 83.0, 'f1': 88.25}
+                    if use_wandb is True and local_rank == 0:
+                        wandb.log({'loss': loss_all/step, 'exact_match':metrics['exact_match'],'f1':metrics['f1']}) # 'rouge1': result['rouge1']})
+                    if best_acc < metrics['f1']:
+                        save_model(model,model_name)
+                        best_acc = metrics['exact_match']
+    except KeyboardInterrupt:
+        if use_wandb is True and local_rank == 0:
+            wandb.finish()
+            logging('Exiting from training early')
     if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
@@ -562,67 +569,70 @@ def train_GPT_MoE(**kwargs):
     if dist:
         model = DDP(model, device_ids=[local_rank], moe_sync_group = moe_sync_group)
         model._sync_params()
-
-    for epoch in range(num_epochs):
-        model.train()
-        step = 0
-        loss_all = 0
-        elapsed_all = 0
-        loss_log = 0
-        elapsed_log = 0
-        for batch in train_dataloader:
-            # break
-            batch = {k: v.to(device) for k, v in batch.items()}
-            batch_start = time.time()
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            loss_all = loss.item()
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            elapsed_all += time.time() - batch_start
-            step += 1
-            if use_wandb is True and local_rank == 0:
-                wandb.log({'batch_loss': loss_all/step})
-                # wandb.log({'batch_loss': loss_all})
-            # break
-            if local_rank == 0:
-                progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                            epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
-                progress_bar.update(1)
-            torch.cuda.empty_cache()
-        # dict_router = {}
-        # index = 0
-            if step % eval_interval == 0:
-                model.eval()
-                for idx, batch in enumerate(eval_dataloader):
-                    batch = {k: v.to(device) for k, v in batch.items()}
-                    with torch.no_grad():
-                        if dist:
-                            outputs = model.module.generate(batch['input_ids'])# (**batch)
-                        else:
-                            outputs = model.generate(batch['input_ids'])# (**batch)
-                        # outputs = model(**batch)
-                    # logits = outputs.logits
-                    # predictions = torch.argmax(logits, dim=-1)
-                    decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-                    decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
-
-                    decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-
-                    metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-                    if idx >= 10:
-                        break
-                result = metric.compute()
-
+    try:
+        for epoch in range(num_epochs):
+            model.train()
+            step = 0
+            loss_all = 0
+            elapsed_all = 0
+            loss_log = 0
+            elapsed_log = 0
+            for batch in train_dataloader:
+                # break
+                batch = {k: v.to(device) for k, v in batch.items()}
+                batch_start = time.time()
+                outputs = model(**batch)
+                loss = outputs.loss
+                loss.backward()
+                loss_all = loss.item()
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                elapsed_all += time.time() - batch_start
+                step += 1
                 if use_wandb is True and local_rank == 0:
-                    wandb.log({'loss': loss_all/step, 'rouge1': result['rouge1']})
-                if best_acc < result['rouge1']:
-                    save_model(model,model_name)
-                    best_acc = result['rouge1']
-        # break
-    # print(result)
+                    wandb.log({'batch_loss': loss_all/step})
+                    # wandb.log({'batch_loss': loss_all})
+                # break
+                if local_rank == 0:
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.update(1)
+                torch.cuda.empty_cache()
+            # dict_router = {}
+            # index = 0
+                if step % eval_interval == 0:
+                    model.eval()
+                    for idx, batch in enumerate(eval_dataloader):
+                        batch = {k: v.to(device) for k, v in batch.items()}
+                        with torch.no_grad():
+                            if dist:
+                                outputs = model.module.generate(batch['input_ids'])# (**batch)
+                            else:
+                                outputs = model.generate(batch['input_ids'])# (**batch)
+                            # outputs = model(**batch)
+                        # logits = outputs.logits
+                        # predictions = torch.argmax(logits, dim=-1)
+                        decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+                        decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
+
+                        decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+
+                        metric.add_batch(predictions=decoded_preds, references=decoded_labels)
+                        if idx >= 10:
+                            break
+                    result = metric.compute()
+
+                    if use_wandb is True and local_rank == 0:
+                        wandb.log({'loss': loss_all/step, 'rouge1': result['rouge1']})
+                    if best_acc < result['rouge1']:
+                        save_model(model,model_name)
+                        best_acc = result['rouge1']
+    except KeyboardInterrupt:
+        if use_wandb is True and local_rank == 0:
+            wandb.finish()
+            logging('Exiting from training early')
+
     if use_wandb is True and local_rank == 0:
         wandb.finish()
     del model
