@@ -4,6 +4,7 @@ FMoE core layer
 import time
 import tree
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.distributed as dist
