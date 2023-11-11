@@ -15,10 +15,6 @@ from .gates import NaiveGate
 
 from .fastermoe.config import switch_from_env
 
-# calculate workload across all experts: 8 experts
-workloads = [0 for i in range(8)]
-measure_step = 0 # update per 12 steps, i.e., every first layer
-
 def mark_module_parallel_comm(module, comm):
     r"""
     Mark all parameters in `module` as doing data parallel in `comm`, where
@@ -170,6 +166,10 @@ class FMoE(nn.Module):
             self.moe_rank = dist.get_rank(group=mp_group)
         else:
             self.moe_rank = 0
+        
+        # calculate workloads
+        self.workloads = [0 for i in range(8)]
+        self.measure_step = 0 # update per 12 steps, i.e., every first layer
 
     def expert_fn(self, inp, fwd_expert_count):
         r"""
@@ -279,11 +279,11 @@ class FMoE(nn.Module):
                 if workload_tensor.dim() != 0:
                     num_tokens = workload_tensor.size(0)
                     workload_in_experts += num_tokens
-            if measure_step%12 == 0:
-                workloads[i].append(workload_in_experts)
-        if measure_step%1200 == 0:
-            np.savez(f'./worker_{self.moe_group}.npz', workloads)
-        measure_step += 1
+            if self.measure_step%12 == 0:
+                self.workloads[i].append(workload_in_experts)
+        if self.measure_step%1200 == 0:
+            np.savez(f'./worker_{self.moe_group}.npz', self.workloads)
+        self.measure_step += 1
 
         # token fusion
         if fuse_token == True and train_step > start_step:
