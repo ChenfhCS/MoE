@@ -120,7 +120,7 @@ def train_xl_MoE(**kwargs):
                 outputs = model(**batch)
                 loss = outputs.loss
                 loss.backward()
-                loss_all = loss.item()
+                loss_all += loss.item()
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
@@ -405,7 +405,7 @@ def train_Bert_MoE(**kwargs):
                 outputs = model(**batch)
                 loss = outputs.loss
                 loss.backward()
-                loss_all = loss.item()
+                loss_all += loss.item()
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
@@ -554,7 +554,7 @@ def train_GPT_MoE(**kwargs):
         name='moe-gpt2-samsum',
         settings=wandb.Settings(
         _stats_sample_rate_seconds=0.1,
-        _stats_samples_to_average=1,
+        _stats_samples_to_average=2,
         ),
         # track hyperparameters and run metadata
         config={
@@ -584,7 +584,7 @@ def train_GPT_MoE(**kwargs):
                 outputs = model(**batch)
                 loss = outputs.loss
                 loss.backward()
-                loss_all = loss.item()
+                loss_all += loss.item()
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
