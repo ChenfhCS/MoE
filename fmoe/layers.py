@@ -285,7 +285,7 @@ class FMoE(nn.Module):
             np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
         self.measure_step += 1
 
-        # token fusion
+        # token fusions
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
