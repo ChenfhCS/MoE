@@ -168,7 +168,7 @@ class FMoE(nn.Module):
             self.moe_rank = 0
         
         # calculate workloads
-        self.workloads = [0 for i in range(8)]
+        self.workloads = [[] for i in range(8)]
         self.measure_step = 0 # update per 12 steps, i.e., every first layer
 
     def expert_fn(self, inp, fwd_expert_count):
