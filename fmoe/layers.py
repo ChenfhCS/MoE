@@ -280,8 +280,7 @@ class FMoE(nn.Module):
                 if workload_tensor.dim() != 0:
                     num_tokens = workload_tensor.size(0)
                     workload_in_experts += num_tokens
-            if self.measure_step%12 == 0:
-                self.workloads[i].append(workload_in_experts)
+            self.workloads[i].append(workload_in_experts)
         if self.measure_step == 200:
             np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
         self.measure_step += 1
