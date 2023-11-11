@@ -283,7 +283,7 @@ class FMoE(nn.Module):
             if self.measure_step%12 == 0:
                 self.workloads[i].append(workload_in_experts)
         if self.measure_step%1200 == 0:
-            np.savez(f'./worker_{self.moe_group}.npz', self.workloads)
+            np.savez(f'./worker_{self.moe_rank}.npz', self.workloads)
         self.measure_step += 1
 
         # token fusion
