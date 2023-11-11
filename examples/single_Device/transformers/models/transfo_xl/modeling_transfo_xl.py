@@ -273,17 +273,17 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inp):
+    def forward(self, inp, layer_idx):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp))
+            core_out, _ = super().forward(self.layer_norm(inp, layer_idx))
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp)
+            core_out, _ = super().forward(inp, layer_idx)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
@@ -448,7 +448,7 @@ class RelPartialLearnableDecoderLayer(nn.Module):
                                                           moe_top_k=moe_config.moe_top_k,
                                                           moe_group=moe_config.moe_group,
                                                           moe_world_size=moe_config.moe_world_size)
-    def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None, output_attentions=False):
+    def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None, output_attentions=False, layer_idx=0):
         attn_outputs = self.dec_attn(
             dec_inp,
             r,
@@ -469,7 +469,7 @@ class RelPartialLearnableDecoderLayer(nn.Module):
             # tokens = torch.cat((token_1,token_2,token_3,token_4), 0)
             # calculate_distance(tokens)
             # print('token embeddings: ', tokens.size())
-            ff_output = self.moe_linear(attn_outputs[0])
+            ff_output = self.moe_linear(attn_outputs[0], layer_idx)
         outputs = [ff_output] + attn_outputs[1:]
 
         return outputs
@@ -1041,6 +1041,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
                     mems=mems_i,
                     head_mask=head_mask[i],
                     output_attentions=output_attentions,
+                    layer_idx = i,
                 )
                 core_out = layer_outputs[0]
                 if output_attentions:

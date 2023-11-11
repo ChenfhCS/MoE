@@ -213,7 +213,7 @@ class FMoE(nn.Module):
                 mark_module_parallel_comm(self.experts, comm)
         mark_module_parallel_comm(self.gate, "gate")
 
-    def forward(self, moe_inp, original_shape, total_experts, top_k, fuse_token=False, train_step=0):
+    def forward(self, moe_inp, original_shape, total_experts, top_k, layer_idx, fuse_token=False, train_step=0):
         r"""
         The FMoE module first computes gate output, and then conduct MoE forward
         according to the gate.  The score of the selected gate given by the
@@ -282,9 +282,8 @@ class FMoE(nn.Module):
                     workload_in_experts += num_tokens
             if self.measure_step%12 == 0:
                 self.workloads[i].append(workload_in_experts)
-        if self.measure_step == 2400:
-            np.savez(f'./worker_{self.moe_rank}.npz', self.workloads)
-        print(self.measure_step)
+        if self.measure_step == 200:
+            np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
         self.measure_step += 1
 
         # token fusion
