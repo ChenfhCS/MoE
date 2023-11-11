@@ -276,7 +276,7 @@ class FMoE(nn.Module):
             workload_in_experts = 0
             for j in range(top_k_value):
                 workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
-                if send.dim() != 0:
+                if workload_tensor.dim() != 0:
                     num_tokens = workload_tensor.size(0)
                     workload_in_experts += num_tokens
             if measure_step%12 == 0:
