@@ -263,27 +263,27 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        # calculate the traffic size
-        traffic_size = 0
-        for k in range(top_k_value):
-            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
-            if send.dim() != 0:
-                num_send = send.size(0)
-                traffic_size += num_send
-        traffic_size = traffic_size*moe_inp.size(1)*4*2
+        # # calculate the traffic size
+        # traffic_size = 0
+        # for k in range(top_k_value):
+        #     send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
+        #     if send.dim() != 0:
+        #         num_send = send.size(0)
+        #         traffic_size += num_send
+        # traffic_size = traffic_size*moe_inp.size(1)*4*2
 
-        # calculate workloads
-        for i in range(num_experts):
-            workload_in_experts = 0
-            for j in range(top_k_value):
-                workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
-                if workload_tensor.dim() != 0:
-                    num_tokens = workload_tensor.size(0)
-                    workload_in_experts += num_tokens
-            self.workloads[i].append(workload_in_experts)
-        if self.measure_step == 200:
-            np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
-        self.measure_step += 1
+        # # calculate workloads
+        # for i in range(num_experts):
+        #     workload_in_experts = 0
+        #     for j in range(top_k_value):
+        #         workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
+        #         if workload_tensor.dim() != 0:
+        #             num_tokens = workload_tensor.size(0)
+        #             workload_in_experts += num_tokens
+        #     self.workloads[i].append(workload_in_experts)
+        # if self.measure_step == 200:
+        #     np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+        # self.measure_step += 1
 
         # token fusions
         if fuse_token == True and train_step > start_step:
