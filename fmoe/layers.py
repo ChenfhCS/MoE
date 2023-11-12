@@ -263,14 +263,17 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        # # calculate the traffic size
-        # traffic_size = 0
-        # for k in range(top_k_value):
-        #     send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
-        #     if send.dim() != 0:
-        #         num_send = send.size(0)
-        #         traffic_size += num_send
-        # traffic_size = traffic_size*moe_inp.size(1)*4*2
+        # calculate the traffic size
+        traffic_size = []
+        for k in range(top_k_value):
+            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
+            if send.dim() != 0:
+                num_send = send.size(0)
+                traffic_size += num_send
+        traffic_size.append(traffic_size*moe_inp.size(1))
+        if self.measure_step == 0:
+            np.savez(f'./workloads_traffic_{layer_idx}_device{self.moe_rank}.npz', traffic_size)
+        self.measure_step += 1
 
         # # calculate workloads
         # for i in range(num_experts):
