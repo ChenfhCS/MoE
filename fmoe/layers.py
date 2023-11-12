@@ -273,7 +273,7 @@ class FMoE(nn.Module):
                 traffic_size += num_send
         save_traffic.append(traffic_size*moe_inp.size(1))
         if self.measure_step == 0:
-            np.savez(f'./workloads_traffic_{layer_idx}_device{self.moe_rank}.npz', traffic_size)
+            np.savez(f'./workloads_traffic_{layer_idx}_device{self.moe_rank}.npz', save_traffic)
         self.measure_step += 1
 
         # # calculate workloads
