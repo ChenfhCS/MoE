@@ -263,6 +263,12 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
+        # save gate score
+        gate_score_save = gate_score.clone().detach().numpy
+        if self.measure_step == 0 and layer_idx <= 6:
+            np.savez(f'./workloads/gatescore_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
+        self.measure_step += 1
+
         # calculate the traffic size
         traffic_size = 0
         save_traffic = []
@@ -272,9 +278,6 @@ class FMoE(nn.Module):
                 num_send = send.size(0)
                 traffic_size += num_send
         save_traffic.append(traffic_size*moe_inp.size(1))
-        if self.measure_step == 0:
-            np.savez(f'./workloads_traffic_{layer_idx}_device{self.moe_rank}.npz', save_traffic)
-        self.measure_step += 1
 
         # # calculate workloads
         # for i in range(num_experts):
