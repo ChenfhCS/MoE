@@ -263,11 +263,11 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        # save gate score
-        gate_score_save = gate_score.clone().detach().cpu().numpy()
-        if self.measure_step == 0 and layer_idx <= 6:
-            np.savez(f'./workloads/gatescore_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
-        self.measure_step += 1
+        # # save gate score
+        # gate_score_save = gate_score.clone().detach().cpu().numpy()
+        # if self.measure_step == 0 and layer_idx <= 6:
+        #     np.savez(f'./workloads/gatescore_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
+        # self.measure_step += 1
 
         # calculate the traffic size
         traffic_size = 0
@@ -279,18 +279,18 @@ class FMoE(nn.Module):
                 traffic_size += num_send
         save_traffic.append(traffic_size*moe_inp.size(1))
 
-        # # calculate workloads
-        # for i in range(num_experts):
-        #     workload_in_experts = 0
-        #     for j in range(top_k_value):
-        #         workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
-        #         if workload_tensor.dim() != 0:
-        #             num_tokens = workload_tensor.size(0)
-        #             workload_in_experts += num_tokens
-        #     self.workloads[i].append(workload_in_experts)
-        # if self.measure_step == 200:
-        #     np.savez(f'./worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
-        # self.measure_step += 1
+        # calculate workloads
+        for i in range(num_experts):
+            workload_in_experts = 0
+            for j in range(top_k_value):
+                workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
+                if workload_tensor.dim() != 0:
+                    num_tokens = workload_tensor.size(0)
+                    workload_in_experts += num_tokens
+            self.workloads[i].append(workload_in_experts)
+        if self.measure_step == 200:
+            np.savez(f'./workloads/workloads_on_experts_bert/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+        self.measure_step += 1
 
         # token fusions
         if fuse_token == True and train_step > start_step:
