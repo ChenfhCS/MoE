@@ -296,7 +296,7 @@ class FMoE(nn.Module):
         
         # save tokens before experts execution
         if self.measure_step == 0 and layer_idx == 0:
-            save_token_embeddings = moe_inp.clone().detach().numpy()
+            save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
             np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
         self.measure_step += 1
 
