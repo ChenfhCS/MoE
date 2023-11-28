@@ -402,7 +402,7 @@ class FMoE(nn.Module):
         gate_score = gate_score.view(-1, 1, self.top_k)
 
         # save token embeddings after expert execution
-        if self.measure_step == 0 and layer_idx == 0:
+        if self.measure_step == 1 and layer_idx == 0:
             save_token_embeddings = moe_outp.clone().detach().cpu().numpy()
             np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
         self.measure_step += 1
