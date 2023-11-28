@@ -226,6 +226,8 @@ class FMoE(nn.Module):
             [batch_size == moe_inp_batch_size[0] for batch_size in moe_inp_batch_size]
         ), "MoE inputs must have the same batch size"
 
+
+
         if self.world_size > 1:
 
             def ensure_comm_func(tensor):
@@ -279,17 +281,23 @@ class FMoE(nn.Module):
                 traffic_size += num_send
         save_traffic.append(traffic_size*moe_inp.size(1))
 
-        # calculate workloads
-        for i in range(num_experts):
-            workload_in_experts = 0
-            for j in range(top_k_value):
-                workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
-                if workload_tensor.dim() != 0:
-                    num_tokens = workload_tensor.size(0)
-                    workload_in_experts += num_tokens
-            self.workloads[i].append(workload_in_experts)
-        if self.measure_step == 200:
-            np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+        # # calculate workloads
+        # for i in range(num_experts):
+        #     workload_in_experts = 0
+        #     for j in range(top_k_value):
+        #         workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
+        #         if workload_tensor.dim() != 0:
+        #             num_tokens = workload_tensor.size(0)
+        #             workload_in_experts += num_tokens
+        #     self.workloads[i].append(workload_in_experts)
+        # if self.measure_step == 200:
+        #     np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+        # self.measure_step += 1
+        
+        # save tokens before experts execution
+        if self.measure_step == 0 and layer_idx == 0:
+            save_token_embeddings = moe_inp.clone().detach().numpy()
+            np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
         self.measure_step += 1
 
         # token fusions
@@ -392,6 +400,12 @@ class FMoE(nn.Module):
         # print("output size: ", moe_outp.size())
 
         gate_score = gate_score.view(-1, 1, self.top_k)
+
+        # save token embeddings after expert execution
+        if self.measure_step == 0 and layer_idx == 0:
+            save_token_embeddings = moe_outp.clone().detach().numpy()
+            np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
+        self.measure_step += 1
 
         def bmm_func(tensor):
             dim = tensor.shape[-1]
