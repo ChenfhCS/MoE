@@ -264,12 +264,12 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
-
-        # # save gate score
-        # gate_score_save = gate_score.clone().detach().cpu().numpy()
-        # if self.measure_step == 0 and layer_idx <= 6:
-        #     np.savez(f'./workloads/gatescore_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
-        # self.measure_step += 1
+        print(gate_top_k_idx.size())
+        # save gate score
+        gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
+        if self.measure_step == 0:
+            np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
+        self.measure_step += 1
 
         # calculate the traffic size
         traffic_size = 0
@@ -294,11 +294,11 @@ class FMoE(nn.Module):
         #     np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
         # self.measure_step += 1
         
-        # save tokens before experts execution
-        if self.measure_step == 0 and layer_idx == 0:
-            save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
-            np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
-        self.measure_step += 1
+        # # save tokens before experts execution
+        # if self.measure_step == 0 and layer_idx == 0:
+        #     save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
+        #     np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
+        # self.measure_step += 1
 
         # token fusions
         if fuse_token == True and train_step > start_step:
@@ -401,11 +401,11 @@ class FMoE(nn.Module):
 
         gate_score = gate_score.view(-1, 1, self.top_k)
 
-        # save token embeddings after expert execution
-        if self.measure_step == 1 and layer_idx == 0:
-            save_token_embeddings = moe_outp.clone().detach().cpu().numpy()
-            np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
-        self.measure_step += 1
+        # # save token embeddings after expert execution
+        # if self.measure_step == 1 and layer_idx == 0:
+        #     save_token_embeddings = moe_outp.clone().detach().cpu().numpy()
+        #     np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
+        # self.measure_step += 1
 
         def bmm_func(tensor):
             dim = tensor.shape[-1]

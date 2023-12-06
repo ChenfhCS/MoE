@@ -36,11 +36,9 @@ def calculate_distance(embs):
     final_similarity = torch.cat(similarities, 0).numpy()
     Distance.append(final_distance)
     Simlarity.append(final_similarity)
-    if len(Distance) == 8:
+    if len(Distance) == 11:
         np.savez('./transfo_embs_dis.npz', Distance)
         np.savez('./transfo_embs_sim.npz', Simlarity)
-
-
 
 """
  PyTorch Transformer XL model. Adapted from https://github.com/kimiyoung/transformer-xl. In particular
