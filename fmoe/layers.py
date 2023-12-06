@@ -267,7 +267,7 @@ class FMoE(nn.Module):
         print(gate_top_k_idx.size())
         # save gate score
         gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
-        if self.measure_step == 0:
+        if self.measure_step == 10:
             np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}.npz', gate_score_save)
         self.measure_step += 1
 
