@@ -264,7 +264,6 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
-        print(gate_top_k_idx.size())
         # save gate score
         gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
         if self.measure_step == 10:
