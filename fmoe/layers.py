@@ -320,7 +320,7 @@ class FMoE(nn.Module):
                         keep_token_mask[similar_tokens_idx] = 0
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
-                print('total tokens, 'gate_top_k_idx_new.size(0))
+                print('total tokens', gate_top_k_idx_new.size(0))
 
         calculate_workloads = False
         if calculate_workloads == True:
