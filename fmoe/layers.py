@@ -61,7 +61,7 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
 
     comm_time_start = time.time()
     x = tree.map_structure(scatter_func, inp)
-    # comm_time += time.time() - comm_time_start
+    comm_time += time.time() - comm_time_start
 
 
     x = expert_fn(x, fwd_expert_count)
@@ -80,7 +80,7 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
-    # comm_time_start = time.time()
+    comm_time_start = time.time()
     outp = tree.map_structure(gather_func, x)
     comm_time += time.time() - comm_time_start
     return outp, comm_time
@@ -264,11 +264,11 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
-        # save gate score
-        gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
-        if self.measure_step == 10:
-            np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
-        self.measure_step += 1
+        # # save gate score
+        # gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
+        # if self.measure_step == 10:
+        #     np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
+        # self.measure_step += 1
 
         # calculate the traffic size
         traffic_size = 0
@@ -427,5 +427,5 @@ class FMoE(nn.Module):
             [batch_size == moe_outp_batch_size[0] for batch_size in moe_outp_batch_size]
         ), "MoE outputs must have the same batch size"
 
-        # print('the communication in a forward layer is: ', comm_time)
+        print('the communication in a forward layer is: ', comm_time)
         return moe_outp, time_costs, comm_time, traffic_size
