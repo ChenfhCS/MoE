@@ -281,7 +281,7 @@ class FMoE(nn.Module):
 
         # # save gate score
         save_gate_score = False
-        if save_gate_score is True:
+        if save_gate_score == True:
             gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
             if self.measure_step == 10:
                 np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
@@ -299,7 +299,7 @@ class FMoE(nn.Module):
             save_traffic.append(traffic_size*moe_inp.size(1))
         
         save_tokens = False
-        if save_tokens is True:
+        if save_tokens == True:
             if self.measure_step == 0 and layer_idx == 0:
                 save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
                 np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
@@ -307,23 +307,23 @@ class FMoE(nn.Module):
 
         # token throttling with similarity
         token_throttling = True
-        if token_throttling is True:
+        if token_throttling == True:
             threshold = 0.6
             moe_inp_temp = moe_inp.clone().detach()
             if layer_idx == 0:
                 _, similarities = calculate_similarity(moe_inp_temp)
                 keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
                 for i in range(len(similarities)):
-                    if drop_token_mask[i] is not False:
+                    if drop_token_mask[i] == True:
                         similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
                         similar_tokens_idx_new = similar_tokens_idx.add(i)
                         keep_token_mask[similar_tokens_idx] = 0
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
-                gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask]
+                gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
                 print('total tokens, 'gate_top_k_idx_new.size(0))
 
         calculate_workloads = False
-        if calculate_workloads is True:
+        if calculate_workloads == True:
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
