@@ -327,12 +327,12 @@ class FMoE(nn.Module):
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
-                    workload_tensor = torch.nonzero(gate_top_k_idx_new[:, k] == i).squeeze()
+                    workload_tensor = torch.nonzero(gate_top_k_idx_new[:, j] == i).squeeze()
                     if workload_tensor.dim() != 0:
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads[i].append(workload_in_experts)
-            if self.measure_step == 200 and layer_idx == 0:
+            if self.measure_step == 10 and layer_idx == 0:
                 np.savez(f'./workloads/workloads_on_experts_xl_throttling/worker_expert{self.moe_rank}.npz', self.workloads)
             self.measure_step += 1
 
