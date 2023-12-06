@@ -308,7 +308,7 @@ class FMoE(nn.Module):
         # token throttling with similarity
         token_throttling = True
         if token_throttling == True:
-            threshold = 0.6
+            threshold = 0.8
             moe_inp_temp = moe_inp.clone().detach()
             if layer_idx == 0:
                 _, similarities = calculate_similarity(moe_inp_temp)
@@ -322,18 +322,18 @@ class FMoE(nn.Module):
                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
                 print('total tokens', gate_top_k_idx_new.size(0))
 
-        calculate_workloads = False
+        calculate_workloads = True
         if calculate_workloads == True:
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
-                    workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
+                    workload_tensor = torch.nonzero(gate_top_k_idx_new[:, k] == i).squeeze()
                     if workload_tensor.dim() != 0:
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads[i].append(workload_in_experts)
-            if self.measure_step == 200:
-                np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+            if self.measure_step == 200 and layer_idx == 0:
+                np.savez(f'./workloads/workloads_on_experts_xl_throttling/worker_expert{self.moe_rank}.npz', self.workloads)
             self.measure_step += 1
 
         # token fusions (original, need to be modified)
