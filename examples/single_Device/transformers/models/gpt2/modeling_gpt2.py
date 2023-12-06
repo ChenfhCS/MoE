@@ -503,7 +503,7 @@ class GPT2Block(nn.Module):
             # # token_4 = tensor_temp[3, :, :]
             # tokens = torch.cat((token_1,token_2), 0)
             # calculate_distance(tokens)
-            feed_forward_hidden_states = self.moe_linear(hidden_states)
+            feed_forward_hidden_states = self.moe_linear(hidden_states, layer_idx=layer_idx)
         # residual connection
 
         hidden_states = residual + feed_forward_hidden_states
