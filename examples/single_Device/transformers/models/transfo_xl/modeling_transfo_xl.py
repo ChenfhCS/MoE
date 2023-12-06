@@ -274,7 +274,7 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, layer_idx):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp, layer_idx))
+            core_out, _ = super().forward(self.layer_norm(inp), layer_idx)
             core_out = self.dropout(core_out)
 
             ##### residual connection
