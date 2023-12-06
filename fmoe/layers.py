@@ -16,6 +16,22 @@ from .gates import NaiveGate
 
 from .fastermoe.config import switch_from_env
 
+# calculate similarity
+def calculate_similarity(embs):
+    dis_func = nn.PairwiseDistance(p=2)
+    embs.cpu()
+    embs_temp = embs.clone().detach().cpu()
+    distances = []
+    similarities = []
+    for i in range(embs.size(0)):
+        compare_emb = torch.zeros(embs.size(0), embs.size(1), dtype=torch.float32)
+        compare_emb[:, :] = embs[i,:]
+        distance_tensor = dis_func(compare_emb, embs_temp)
+        similarity_tensor = nn.functional.cosine_similarity(compare_emb, embs_temp)
+        similarities.append(similarity_tensor[i:])
+        distances.append(distance_tensor[i:])
+    return distances, similarities
+
 def mark_module_parallel_comm(module, comm):
     r"""
     Mark all parameters in `module` as doing data parallel in `comm`, where
@@ -226,8 +242,6 @@ class FMoE(nn.Module):
             [batch_size == moe_inp_batch_size[0] for batch_size in moe_inp_batch_size]
         ), "MoE inputs must have the same batch size"
 
-
-
         if self.world_size > 1:
 
             def ensure_comm_func(tensor):
@@ -264,42 +278,64 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
+
         # # save gate score
-        # gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
-        # if self.measure_step == 10:
-        #     np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
-        # self.measure_step += 1
+        save_gate_score = False
+        if save_gate_score is True:
+            gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
+            if self.measure_step == 10:
+                np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
+            self.measure_step += 1
 
         # calculate the traffic size
         traffic_size = 0
         save_traffic = []
-        for k in range(top_k_value):
-            send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
-            if send.dim() != 0:
-                num_send = send.size(0)
-                traffic_size += num_send
-        save_traffic.append(traffic_size*moe_inp.size(1))
-
-        # # calculate workloads
-        # for i in range(num_experts):
-        #     workload_in_experts = 0
-        #     for j in range(top_k_value):
-        #         workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
-        #         if workload_tensor.dim() != 0:
-        #             num_tokens = workload_tensor.size(0)
-        #             workload_in_experts += num_tokens
-        #     self.workloads[i].append(workload_in_experts)
-        # if self.measure_step == 200:
-        #     np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
-        # self.measure_step += 1
+        if traffic_size:
+            for k in range(top_k_value):
+                send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
+                if send.dim() != 0:
+                    num_send = send.size(0)
+                    traffic_size += num_send
+            save_traffic.append(traffic_size*moe_inp.size(1))
         
-        # # save tokens before experts execution
-        # if self.measure_step == 0 and layer_idx == 0:
-        #     save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
-        #     np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
-        # self.measure_step += 1
+        save_tokens = False
+        if save_tokens is True:
+            if self.measure_step == 0 and layer_idx == 0:
+                save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
+                np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
+            self.measure_step += 1
 
-        # token fusions
+        # token throttling with similarity
+        token_throttling = True
+        if token_throttling is True:
+            threshold = 0.6
+            moe_inp_temp = moe_inp.clone().detach()
+            _, similarities = calculate_similarity(moe_inp_temp)
+            keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
+            for i in range(len(similarities)):
+                if drop_token_mask[i] is not False:
+                    similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
+                    similar_tokens_idx_new = similar_tokens_idx.add(i)
+                    keep_token_mask[similar_tokens_idx] = 0
+            gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
+            gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask]
+            print('total tokens, 'gate_top_k_idx_new.size(0))
+
+        calculate_workloads = False
+        if calculate_workloads is True:
+            for i in range(num_experts):
+                workload_in_experts = 0
+                for j in range(top_k_value):
+                    workload_tensor = torch.nonzero(gate_top_k_idx[:, k] == i).squeeze()
+                    if workload_tensor.dim() != 0:
+                        num_tokens = workload_tensor.size(0)
+                        workload_in_experts += num_tokens
+                self.workloads[i].append(workload_in_experts)
+            if self.measure_step == 200:
+                np.savez(f'./workloads/workloads_on_experts_gpt/worker_layer{layer_idx}_expert{self.moe_rank}.npz', self.workloads)
+            self.measure_step += 1
+
+        # token fusions (original, need to be modified)
         if fuse_token == True and train_step > start_step:
             time_start = time.time()
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
