@@ -310,16 +310,17 @@ class FMoE(nn.Module):
         if token_throttling is True:
             threshold = 0.6
             moe_inp_temp = moe_inp.clone().detach()
-            _, similarities = calculate_similarity(moe_inp_temp)
-            keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
-            for i in range(len(similarities)):
-                if drop_token_mask[i] is not False:
-                    similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
-                    similar_tokens_idx_new = similar_tokens_idx.add(i)
-                    keep_token_mask[similar_tokens_idx] = 0
-            gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
-            gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask]
-            print('total tokens, 'gate_top_k_idx_new.size(0))
+            if layer_idx == 0:
+                _, similarities = calculate_similarity(moe_inp_temp)
+                keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
+                for i in range(len(similarities)):
+                    if drop_token_mask[i] is not False:
+                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
+                        similar_tokens_idx_new = similar_tokens_idx.add(i)
+                        keep_token_mask[similar_tokens_idx] = 0
+                gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
+                gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask]
+                print('total tokens, 'gate_top_k_idx_new.size(0))
 
         calculate_workloads = False
         if calculate_workloads is True:
