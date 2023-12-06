@@ -323,7 +323,7 @@ class FMoE(nn.Module):
                 print('total tokens', gate_top_k_idx_new.size(0))
 
         calculate_workloads = True
-        if calculate_workloads == True and if layer_idx == 0:
+        if calculate_workloads == True and layer_idx == 0:
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
