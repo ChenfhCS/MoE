@@ -315,7 +315,7 @@ class FMoE(nn.Module):
                 keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
                 for i in range(len(similarities)):
                     if keep_token_mask[i] == True:
-                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).squeeze()
+                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
                         similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
                         keep_token_mask[similar_tokens_idx] = 0
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
