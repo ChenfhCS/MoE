@@ -70,9 +70,9 @@ def calculate_distance(embs):
     final_similarity = torch.cat(similarities, 0).numpy()
     Distance.append(final_distance)
     Simlarity.append(final_similarity)
-    if len(Distance) == 8:
-        np.savez('./gpt_embs_dis.npz', Distance)
-        np.savez('./gpt_embs_sim.npz', Simlarity)
+    if len(Distance) == 11:
+        np.savez('./workloads/similarity_gpt/gpt_embs_dis.npz', Distance)
+        np.savez('./workloads/similarity_gpt/gpt_embs_sim.npz', Simlarity)
 
 logger = logging.get_logger(__name__)
 

@@ -267,7 +267,7 @@ class FMoE(nn.Module):
         # save gate score
         gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
         if self.measure_step == 10:
-            np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top1.npz', gate_score_save)
+            np.savez(f'./workloads/gate_gpt/gates_{layer_idx}_device{self.moe_rank}_top1.npz', gate_score_save)
         self.measure_step += 1
 
         # calculate the traffic size

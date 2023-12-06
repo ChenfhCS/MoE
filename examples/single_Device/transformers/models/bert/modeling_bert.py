@@ -51,6 +51,31 @@ from ...utils import (
 )
 from .configuration_bert import BertConfig
 
+# calculate similarity
+Distance = []
+Simlarity = []
+import torch.nn as nn
+import numpy as np
+def calculate_distance(embs):
+    dis_func = nn.PairwiseDistance(p=2)
+    embs.cpu()
+    embs_temp = embs.clone().detach().cpu()
+    distances = []
+    similarities = []
+    for i in range(embs.size(0)):
+        compare_emb = torch.zeros(embs.size(0), embs.size(1), dtype=torch.float32)
+        compare_emb[:, :] = embs[i,:]
+        distance_tensor = dis_func(compare_emb, embs_temp)
+        similarity_tensor = nn.functional.cosine_similarity(compare_emb, embs_temp)
+        similarities.append(similarity_tensor[i:])
+        distances.append(distance_tensor[i:])
+    final_distance = torch.cat(distances,0).numpy()
+    final_similarity = torch.cat(similarities, 0).numpy()
+    Distance.append(final_distance)
+    Simlarity.append(final_similarity)
+    if len(Distance) == 11:
+        np.savez('./workloads/similarity_gpt/gpt_embs_dis.npz', Distance)
+        np.savez('./workloads/similarity_gpt/gpt_embs_sim.npz', Simlarity)
 
 logger = logging.get_logger(__name__)
 

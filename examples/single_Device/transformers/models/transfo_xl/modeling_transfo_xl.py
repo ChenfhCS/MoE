@@ -37,8 +37,8 @@ def calculate_distance(embs):
     Distance.append(final_distance)
     Simlarity.append(final_similarity)
     if len(Distance) == 11:
-        np.savez('./transfo_embs_dis.npz', Distance)
-        np.savez('./transfo_embs_sim.npz', Simlarity)
+        np.savez('./workloads/similarity_xl/transfo_embs_dis.npz', Distance)
+        np.savez('./workloads/similarity_xl/transfo_embs_sim.npz', Simlarity)
 
 """
  PyTorch Transformer XL model. Adapted from https://github.com/kimiyoung/transformer-xl. In particular
@@ -460,6 +460,7 @@ class RelPartialLearnableDecoderLayer(nn.Module):
         else:
             # # calculate token similarity
             # tensor_temp = attn_outputs[0].clone().detach()
+            # print(tensor_temp.size())
             # token_1 = tensor_temp[:,0,:]
             # token_2 = tensor_temp[:,1,:]
             # token_3 = tensor_temp[:,2,:]
