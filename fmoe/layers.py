@@ -315,8 +315,8 @@ class FMoE(nn.Module):
                 keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
                 for i in range(len(similarities)):
                     if keep_token_mask[i] == True:
-                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
-                        similar_tokens_idx_new = similar_tokens_idx.add(i)
+                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).squeeze()
+                        similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
                         keep_token_mask[similar_tokens_idx] = 0
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
@@ -332,7 +332,7 @@ class FMoE(nn.Module):
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads[i].append(workload_in_experts)
-            if self.measure_step == 10:
+            if self.measure_step == 200:
                 np.savez(f'./workloads/workloads_on_experts_xl_throttling/worker_expert{self.moe_rank}.npz', self.workloads)
             self.measure_step += 1
 
