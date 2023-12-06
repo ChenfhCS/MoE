@@ -503,17 +503,17 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inp):
+    def forward(self, inp, self.layer_idx):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp))
+            core_out, _ = super().forward(self.layer_norm(inp), self.layer_idx)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp)
+            core_out, _ = super().forward(inp, self.layer_idx)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
@@ -522,7 +522,7 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         return output # , fusion_costs
 
 class BertLayer(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, layer_idx):
         super().__init__()
         self.chunk_size_feed_forward = config.chunk_size_feed_forward
         self.seq_len_dim = 1
@@ -533,7 +533,7 @@ class BertLayer(nn.Module):
             if not self.is_decoder:
                 raise ValueError(f"{self} should be used as a decoder model if cross attention is added")
             self.crossattention = BertAttention(config, position_embedding_type="absolute")
-
+        self.layer_idx = layer_idx
         if config.moe == False:
             self.moe = False
             self.intermediate = BertIntermediate(config)
@@ -606,7 +606,7 @@ class BertLayer(nn.Module):
             )
             outputs = (layer_output,) + outputs
         else:
-            outputs = (self.moe_linear(attention_output),) + outputs
+            outputs = (self.moe_linear(attention_output, self.layer_idx),) + outputs
         # self.CustomizedMoEPositionwiseFF()
         # if decoder, return the attn key/values as the last output
         if self.is_decoder:
@@ -624,7 +624,7 @@ class BertEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
+        self.layer = nn.ModuleList([BertLayer(config, i) for i in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
 
     def forward(
