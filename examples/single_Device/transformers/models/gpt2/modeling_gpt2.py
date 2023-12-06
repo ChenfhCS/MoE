@@ -417,6 +417,7 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
 
 class GPT2Block(nn.Module):
     def __init__(self, config, moe_group, layer_idx=None):
+        self.layer_idx = layer_idx
         super().__init__()
         hidden_size = config.hidden_size
         inner_dim = config.n_inner if config.n_inner is not None else 4 * hidden_size
@@ -503,7 +504,7 @@ class GPT2Block(nn.Module):
             # # token_4 = tensor_temp[3, :, :]
             # tokens = torch.cat((token_1,token_2), 0)
             # calculate_distance(tokens)
-            feed_forward_hidden_states = self.moe_linear(hidden_states, layer_idx=layer_idx)
+            feed_forward_hidden_states = self.moe_linear(hidden_states, layer_idx=self.layer_idx)
         # residual connection
 
         hidden_states = residual + feed_forward_hidden_states
