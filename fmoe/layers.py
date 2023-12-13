@@ -188,6 +188,9 @@ class FMoE(nn.Module):
         self.workloads = [[] for i in range(8)]
         self.measure_step = 0 # update per 12 steps, i.e., every first layer
 
+        # calculate traffic size per batch
+        self.traffic = []
+
     def expert_fn(self, inp, fwd_expert_count):
         r"""
         The default expert function which either calls the experts as a whole
@@ -289,14 +292,15 @@ class FMoE(nn.Module):
 
         # calculate the traffic size
         traffic_size = 0
-        save_traffic = []
-        if traffic_size:
+        calculate_traffic_size = True
+        if calculate_traffic_size == True:
             for k in range(top_k_value):
                 send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
                 if send.dim() != 0:
                     num_send = send.size(0)
                     traffic_size += num_send
-            save_traffic.append(traffic_size*moe_inp.size(1))
+            self.traffic_size.append(traffic_size*moe_inp.size(1))
+            print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic_size)}')
         
         save_tokens = False
         if save_tokens == True:
