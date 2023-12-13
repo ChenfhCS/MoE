@@ -281,7 +281,7 @@ class FMoE(nn.Module):
         time_costs = 0
         start_step =0
         num_experts = total_experts
-        
+
         # # ------------------------------------------------ save gate score ------------------------------------------------ # #
         save_gate_score = False
         if save_gate_score == True:
@@ -301,7 +301,7 @@ class FMoE(nn.Module):
                     num_send = send.size(0)
                     traffic_size += num_send
             self.traffic.append(traffic_size*moe_inp.size(1))
-            if layer_idx == 0 and training_step == 200:
+            if layer_idx == 0 and training_step == 2:
                 print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic)}')
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
