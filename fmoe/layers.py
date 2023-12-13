@@ -295,7 +295,7 @@ class FMoE(nn.Module):
 
         # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
         traffic_size = 0
-        calculate_traffic_size = True
+        calculate_traffic_size = False
         if calculate_traffic_size == True:
             for k in range(top_k_value):
                 send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
@@ -318,7 +318,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
             threshold = 0.5
             moe_inp_temp = moe_inp.clone().detach()
@@ -336,7 +336,7 @@ class FMoE(nn.Module):
 
 
         # # ----------------------------------------- workloads without throttling ------------------------------------------ # #
-        calculate_workloads = True
+        calculate_workloads = False
         if calculate_workloads == True and layer_idx == 0:
             for i in range(num_experts):
                 workload_in_experts = 0
