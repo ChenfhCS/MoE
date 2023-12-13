@@ -300,8 +300,8 @@ class FMoE(nn.Module):
                 if send.dim() != 0:
                     num_send = send.size(0)
                     traffic_size += num_send
-            self.traffic_size.append(traffic_size*moe_inp.size(1))
-            print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic_size)}')
+            self.traffic.append(traffic_size*moe_inp.size(1))
+            print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic)}')
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
