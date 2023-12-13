@@ -315,7 +315,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-        token_throttling = False
+        token_throttling = True
         if token_throttling == True:
             threshold = 0.5
             moe_inp_temp = moe_inp.clone().detach()
@@ -349,9 +349,7 @@ class FMoE(nn.Module):
 
 
         # # ------------------------------------------ workloads with throttling -------------------------------------------- # #
-        # workloads with throttling
-        calculate_workloads = True
-        if calculate_workloads == True and layer_idx == 0:
+        if token_throttling == True and layer_idx == 0:
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
