@@ -282,6 +282,8 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
+        print('total tokens is ', moe_inp.size(0))
+
         # # ------------------------------------------------ save gate score ------------------------------------------------ # #
         save_gate_score = False
         if save_gate_score == True:
