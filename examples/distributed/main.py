@@ -126,7 +126,7 @@ np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     if not args.cuda:
-        # print('WARNING: You have a CUDA device, so you should probably run with --cuda')
+        print('WARNING: You have a CUDA device, so you should probably run with --cuda')
     else:
         torch.cuda.manual_seed_all(args.seed)
 
