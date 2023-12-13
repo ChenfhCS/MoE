@@ -271,17 +271,17 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inp, layer_idx):
+    def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp), layer_idx)
+            core_out, _ = super().forward(self.layer_norm(inp), layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx)
+            core_out, _ = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
@@ -446,7 +446,7 @@ class RelPartialLearnableDecoderLayer(nn.Module):
                                                           moe_top_k=moe_config.moe_top_k,
                                                           moe_group=moe_config.moe_group,
                                                           moe_world_size=moe_config.moe_world_size)
-    def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None, output_attentions=False, layer_idx=0):
+    def forward(self, dec_inp, r, dec_attn_mask=None, mems=None, head_mask=None, output_attentions=False, layer_idx=0, training_step=0):
         attn_outputs = self.dec_attn(
             dec_inp,
             r,
@@ -468,7 +468,7 @@ class RelPartialLearnableDecoderLayer(nn.Module):
             # tokens = torch.cat((token_1,token_2,token_3,token_4), 0)
             # calculate_distance(tokens)
             # print('token embeddings: ', tokens.size())
-            ff_output = self.moe_linear(attn_outputs[0], layer_idx)
+            ff_output = self.moe_linear(attn_outputs[0], layer_idx, training_step)
         outputs = [ff_output] + attn_outputs[1:]
 
         return outputs
@@ -959,6 +959,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple, TransfoXLModelOutput]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
@@ -1041,6 +1042,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
                     head_mask=head_mask[i],
                     output_attentions=output_attentions,
                     layer_idx = i,
+                    training_step = training_step,
                 )
                 core_out = layer_outputs[0]
                 if output_attentions:
@@ -1297,6 +1299,7 @@ class TransfoXLForSequenceClassification(TransfoXLPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple, TransfoXLSequenceClassifierOutputWithPast]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1314,6 +1317,7 @@ class TransfoXLForSequenceClassification(TransfoXLPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            training_step=training_step,
         )
         hidden_states = transformer_outputs[0]
         logits = self.score(hidden_states)

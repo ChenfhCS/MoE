@@ -186,7 +186,7 @@ class FMoE(nn.Module):
         
         # calculate workloads
         self.workloads = [[] for i in range(8)]
-        self.measure_step = 0 # update per 12 steps, i.e., every first layer
+        self.workloads_throttling = [[] for i in range(8)]
 
         # calculate traffic size per batch
         self.traffic = []
@@ -232,7 +232,7 @@ class FMoE(nn.Module):
                 mark_module_parallel_comm(self.experts, comm)
         mark_module_parallel_comm(self.gate, "gate")
 
-    def forward(self, moe_inp, original_shape, total_experts, top_k, layer_idx, fuse_token=False, train_step=0):
+    def forward(self, moe_inp, original_shape, total_experts, top_k, layer_idx, fuse_token=False, training_step=0):
         r"""
         The FMoE module first computes gate output, and then conduct MoE forward
         according to the gate.  The score of the selected gate given by the
@@ -282,15 +282,16 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        # # save gate score
+        # # ------------------------------------------------ save gate score ------------------------------------------------ # #
         save_gate_score = False
         if save_gate_score == True:
             gate_score_save = gate_top_k_idx.clone().detach().cpu().numpy()
-            if self.measure_step == 10:
+            if training_step == 10:
                 np.savez(f'./workloads/gate_xl/gates_{layer_idx}_device{self.moe_rank}_top2.npz', gate_score_save)
-            self.measure_step += 1
+        # # ----------------------------------------------------------------------------------------------------------------- # #
 
-        # calculate the traffic size
+
+        # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
         traffic_size = 0
         calculate_traffic_size = True
         if calculate_traffic_size == True:
@@ -301,16 +302,20 @@ class FMoE(nn.Module):
                     traffic_size += num_send
             self.traffic_size.append(traffic_size*moe_inp.size(1))
             print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic_size)}')
-        
+        # # ----------------------------------------------------------------------------------------------------------------- # #
+
+
+        # # -------------------------------------- save token to calculate similarity --------------------------------------- # #
         save_tokens = False
         if save_tokens == True:
-            if self.measure_step == 0 and layer_idx == 0:
+            if training_step == 0 and layer_idx == 0:
                 save_token_embeddings = moe_inp.clone().detach().cpu().numpy()
                 np.savez('./workloads/transformerxl_tokens_before_experts.npz', save_token_embeddings)
-            self.measure_step += 1
+        # # ----------------------------------------------------------------------------------------------------------------- # #
 
-        # token throttling with similarity
-        token_throttling = True
+
+        # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
+        token_throttling = False
         if token_throttling == True:
             threshold = 0.5
             moe_inp_temp = moe_inp.clone().detach()
@@ -324,8 +329,27 @@ class FMoE(nn.Module):
                         keep_token_mask[similar_tokens_idx] = 0
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
-                print('total tokens', gate_top_k_idx_new.size(0))
+        # # ----------------------------------------------------------------------------------------------------------------- # #
 
+
+        # # ----------------------------------------- workloads without throttling ------------------------------------------ # #
+        calculate_workloads = True
+        if calculate_workloads == True and layer_idx == 0:
+            for i in range(num_experts):
+                workload_in_experts = 0
+                for j in range(top_k_value):
+                    workload_tensor = torch.nonzero(gate_top_k_idx[:, j] == i).squeeze()
+                    if workload_tensor.dim() != 0:
+                        num_tokens = workload_tensor.size(0)
+                        workload_in_experts += num_tokens
+                self.workloads[i].append(workload_in_experts)
+            if training_step == 200:
+                np.savez(f'./workloads/workloads_on_experts_xl/worker_expert{self.moe_rank}.npz', self.workloads)
+        # # ----------------------------------------------------------------------------------------------------------------- # #
+
+
+        # # ------------------------------------------ workloads with throttling -------------------------------------------- # #
+        # workloads with throttling
         calculate_workloads = True
         if calculate_workloads == True and layer_idx == 0:
             for i in range(num_experts):
@@ -335,10 +359,11 @@ class FMoE(nn.Module):
                     if workload_tensor.dim() != 0:
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
-                self.workloads[i].append(workload_in_experts)
-            if self.measure_step == 200:
-                np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads)
-            self.measure_step += 1
+                self.workloads_throttling[i].append(workload_in_experts)
+            if training_step == 200:
+                np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
+        # # ----------------------------------------------------------------------------------------------------------------- # #
+
 
         # token fusions (original, need to be modified)
         if fuse_token == True and train_step > start_step:
@@ -442,10 +467,10 @@ class FMoE(nn.Module):
         gate_score = gate_score.view(-1, 1, self.top_k)
 
         # # save token embeddings after expert execution
-        # if self.measure_step == 1 and layer_idx == 0:
+        # if training_step == 1 and layer_idx == 0:
         #     save_token_embeddings = moe_outp.clone().detach().cpu().numpy()
         #     np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
-        # self.measure_step += 1
+        # training_step += 1
 
         def bmm_func(tensor):
             dim = tensor.shape[-1]
