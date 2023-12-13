@@ -34,9 +34,7 @@ def Create_MoE_Model(**kwargs):
         from transformers import TransfoXLForSequenceClassification
         tokenizer = AutoTokenizer.from_pretrained("transfo-xl-wt103")
         config_load = AutoConfig.from_pretrained("transfo-xl-wt103")
-        config_load.n_layer = kwargs['num_layers']
         config = AutoConfig.from_pretrained("transfo-xl-wt103")
-        config.n_layer = kwargs['num_layers']
         config.moe = kwargs['moe']
         config.moe_num_experts = kwargs['moe_num_experts']
         config.moe_top_k = kwargs['moe_top_k']
@@ -75,11 +73,9 @@ def Create_MoE_Model(**kwargs):
     # bert
     elif kwargs['model_name'] == 'bert':
         from transformers import BertForQuestionAnswering
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        config = AutoConfig.from_pretrained("bert-base-uncased")
-        config_load = AutoConfig.from_pretrained("bert-base-uncased")
-        config_load.num_hidden_layers = kwargs['num_layers']
-        config.num_hidden_layers = kwargs['num_layers']
+        tokenizer = AutoTokenizer.from_pretrained("bert-large-uncased")
+        config = AutoConfig.from_pretrained("bert-large-uncased")
+        config_load = AutoConfig.from_pretrained("bert-large-uncased")
         config.moe = kwargs['moe']
         config.moe_num_experts = kwargs['moe_num_experts']
         config.moe_top_k = kwargs['moe_top_k']
@@ -100,7 +96,7 @@ def Create_MoE_Model(**kwargs):
         # 'bert.encoder.layer.0.moe_linear.experts.0.h4toh.weight', 'bert.encoder.layer.0.moe_linear.experts.0.h4toh.bias',]
         # original_layer_normal = ['bert.encoder.layer.11.output.LayerNorm.weight', 'bert.encoder.layer.11.output.LayerNorm.bias']
         # desitny weight = ['bert.encoder.layer.0.moe_linear.layer_norm.weight', 'bert.encoder.layer.0.moe_linear.layer_norm.bias']
-        bertLayerLength=12
+        # bertLayerLength=24
         # copy linear weight, bias and layernormal
         for layer in range(config_load.num_hidden_layers):
             for expert_id in range(config.moe_num_experts):
@@ -119,8 +115,6 @@ def Create_MoE_Model(**kwargs):
         tokenizer = AutoTokenizer.from_pretrained("gpt2")
         config = AutoConfig.from_pretrained("gpt2")
         config_load = AutoConfig.from_pretrained("gpt2")
-        config_load.n_layer = kwargs['num_layers']
-        config.n_layer = kwargs['num_layers']
         config.moe = kwargs['moe']
         config.moe_num_experts = kwargs['moe_num_experts']
         config.moe_top_k = kwargs['moe_top_k']

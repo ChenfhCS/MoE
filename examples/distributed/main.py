@@ -25,8 +25,6 @@ parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model
 # model and training configs
 parser.add_argument('--model_name', type=str, choices=['xl', 'bert', 'gpt'],
                     help='model name')
-parser.add_argument('--num_layer', type=int, default=12,
-                    help='number of total layers')
 parser.add_argument('--train_batch_size', type=int, default=4,
                     help='train batch size')
 parser.add_argument('--eval_batch_size', type=int, default=4,
@@ -133,10 +131,24 @@ if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
 
 # load model
-model, tokenizer = Create_MoE_Model(model_name = args.model_name, num_layers = args.num_layer, 
+model, tokenizer = Create_MoE_Model(model_name = args.model_name, 
                                     moe = args.moe, moe_num_experts = args.moe_num_experts // ep_group_world_size,
                                     moe_top_k = args.moe_top_k, moe_group = moe_comm_group,
                                     moe_world_size = ep_group_world_size)
+if args.model_name == 'xl':
+    args.n_layer = model.config.n_layer
+    args.n_embd = model.config.d_embed
+    args.n_inner = model.config.d_inner
+elif args.model_name == 'gpt': # xl and gpt
+    args.n_layer = model.config.n_layer
+    args.n_embd = model.config.n_embd
+    args.n_inner = model.config.n_inner
+elif args.model_name == 'bert': # bert
+    args.n_layer = model.config.num_hidden_layers
+    args.n_embd = model.config.hidden_size
+    args.n_inner = model.config.intermediate_size
+else:
+    raise AttributeError("No such models!")
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
 
 if local_rank == 0:
@@ -144,7 +156,6 @@ if local_rank == 0:
     for k, v in args.__dict__.items():
         logging('    - {} : {}'.format(k, v))
     logging('=' * 100)
-    logging('#params = {}'.format(args.n_all_param))
 
 
 model = model.to(device)
