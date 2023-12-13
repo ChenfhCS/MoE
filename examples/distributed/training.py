@@ -117,7 +117,7 @@ def train_xl_MoE(**kwargs):
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
                 batch_start = time.time()
-                outputs = model(**batch, step)
+                outputs = model(**batch, training_step = step)
                 loss = outputs.loss
                 loss.backward()
                 loss_all += loss.item()
