@@ -282,7 +282,7 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        print('total tokens is ', moe_inp.size(0))
+        print('total tokens is {}, dimension is {}'.format(moe_inp.size(0), moe_inp.size(1)))
 
         # # ------------------------------------------------ save gate score ------------------------------------------------ # #
         save_gate_score = False
