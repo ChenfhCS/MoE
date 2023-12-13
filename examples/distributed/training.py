@@ -402,7 +402,7 @@ def train_Bert_MoE(**kwargs):
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
                 batch_start = time.time()
-                outputs = model(**batch)
+                outputs = model(**batch, training_step = step)
                 loss = outputs.loss
                 loss.backward()
                 loss_all += loss.item()
@@ -581,7 +581,7 @@ def train_GPT_MoE(**kwargs):
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
                 batch_start = time.time()
-                outputs = model(**batch)
+                outputs = model(**batch, training_step = step)
                 loss = outputs.loss
                 loss.backward()
                 loss_all += loss.item()

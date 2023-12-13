@@ -396,17 +396,17 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inp, layer_idx):
+    def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp),layer_idx)
+            core_out, _ = super().forward(self.layer_norm(inp),layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx)
+            core_out, _ = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
@@ -453,6 +453,7 @@ class GPT2Block(nn.Module):
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         use_cache: Optional[bool] = False,
         output_attentions: Optional[bool] = False,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple[torch.Tensor], Optional[Tuple[torch.Tensor, Tuple[torch.FloatTensor, ...]]]]:
         residual = hidden_states
         hidden_states = self.ln_1(hidden_states)
@@ -504,7 +505,7 @@ class GPT2Block(nn.Module):
             # # token_4 = tensor_temp[3, :, :]
             # tokens = torch.cat((token_1,token_2), 0)
             # calculate_distance(tokens)
-            feed_forward_hidden_states = self.moe_linear(hidden_states, self.layer_idx)
+            feed_forward_hidden_states = self.moe_linear(hidden_states, self.layer_idx, training_step)
         # residual connection
 
         hidden_states = residual + feed_forward_hidden_states
@@ -848,6 +849,7 @@ class GPT2Model(GPT2PreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple, BaseModelOutputWithPastAndCrossAttentions]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
@@ -988,6 +990,7 @@ class GPT2Model(GPT2PreTrainedModel):
                     encoder_attention_mask=encoder_attention_mask,
                     use_cache=use_cache,
                     output_attentions=output_attentions,
+                    training_step=training_step,
                 )
 
             hidden_states = outputs[0]
@@ -1147,6 +1150,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1170,6 +1174,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            training_step=training_step,
         )
         hidden_states = transformer_outputs[0]
 

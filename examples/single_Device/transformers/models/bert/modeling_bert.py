@@ -503,17 +503,17 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inp, layer_idx):
+    def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp), layer_idx)
+            core_out, _ = super().forward(self.layer_norm(inp), layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx)
+            core_out, _ = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
@@ -555,6 +555,7 @@ class BertLayer(nn.Module):
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
+        training_step: Optional[int] = None,
     ) -> Tuple[torch.Tensor]:
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
         self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
@@ -606,7 +607,7 @@ class BertLayer(nn.Module):
             )
             outputs = (layer_output,) + outputs
         else:
-            outputs = (self.moe_linear(attention_output, self.layer_idx),) + outputs
+            outputs = (self.moe_linear(attention_output, self.layer_idx, training_step),) + outputs
         # self.CustomizedMoEPositionwiseFF()
         # if decoder, return the attn key/values as the last output
         if self.is_decoder:
@@ -639,6 +640,7 @@ class BertEncoder(nn.Module):
         output_attentions: Optional[bool] = False,
         output_hidden_states: Optional[bool] = False,
         return_dict: Optional[bool] = True,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPastAndCrossAttentions]:
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
@@ -674,6 +676,7 @@ class BertEncoder(nn.Module):
                     layer_head_mask,
                     encoder_hidden_states,
                     encoder_attention_mask,
+                    training_step,
                 )
             else:
                 layer_outputs = layer_module(
@@ -684,6 +687,7 @@ class BertEncoder(nn.Module):
                     encoder_attention_mask,
                     past_key_value,
                     output_attentions,
+                    training_step,
                 )
 
             hidden_states = layer_outputs[0]
@@ -999,6 +1003,7 @@ class BertModel(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPoolingAndCrossAttentions]:
         r"""
         encoder_hidden_states  (`torch.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):
@@ -1097,6 +1102,7 @@ class BertModel(BertPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            training_step=training_step,
         )
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
@@ -1901,6 +1907,7 @@ class BertForQuestionAnswering(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        training_step: Optional[int] = None,
     ) -> Union[Tuple[torch.Tensor], QuestionAnsweringModelOutput]:
         r"""
         start_positions (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1924,6 +1931,7 @@ class BertForQuestionAnswering(BertPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            training_step=training_step,
         )
 
         sequence_output = outputs[0]
