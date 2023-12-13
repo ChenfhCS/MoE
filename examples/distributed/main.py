@@ -109,14 +109,14 @@ if args.expert_parallel:
         group = torch.distributed.new_group(moe_comm_group_list)
         if j == ep_group_rank:
             moe_comm_group = group
-            print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
+            # print("rank {}/{}, moe_comm_group list is {}".format(global_rank+1, world_size, moe_comm_group_list))
     # data parallel group
     for j in range(ep_group_world_size):
         moe_sync_group_list = [j + ep_group_world_size * i for i in range(dp_group_world_size)]  # GPUs use the same experts (from different group) will share parameters
         group = torch.distributed.new_group(moe_sync_group_list)
         if j == dp__group_rank:
             moe_sync_group = group
-            print("rank {}/{}, moe_sync_group list is {}".format(global_rank, world_size, moe_sync_group_list))
+            # print("rank {}/{}, moe_sync_group list is {}".format(global_rank, world_size, moe_sync_group_list))
 else:
     moe_comm_group = None
     moe_sync_group = None
@@ -126,7 +126,7 @@ np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     if not args.cuda:
-        print('WARNING: You have a CUDA device, so you should probably run with --cuda')
+        # print('WARNING: You have a CUDA device, so you should probably run with --cuda')
     else:
         torch.cuda.manual_seed_all(args.seed)
 
