@@ -351,7 +351,7 @@ class FMoE(nn.Module):
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads[i].append(workload_in_experts)
-            if training_step == 10:
+            if training_step == 200:
                 np.savez(f'./workloads/workloads_on_experts_xl/worker_expert{self.moe_rank}.npz', self.workloads)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
@@ -366,7 +366,7 @@ class FMoE(nn.Module):
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads_throttling[i].append(workload_in_experts)
-            if training_step == 10:
+            if training_step == 200:
                 np.savez(f'./workloads/workloads_on_experts_xl_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
