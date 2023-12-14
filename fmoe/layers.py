@@ -329,10 +329,10 @@ class FMoE(nn.Module):
                 for i in range(len(similarities)):
                     if keep_token_mask[i] == True:
                         similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
-                        similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
+                        similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
                         # same gate
                         similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
-                        if torch_tensor != torch.Size([]):
+                        if similar_gate_out_idx != torch.Size([]):
                             ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
                             similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
                             keep_token_mask[ignore_tokens_idx] = 0
