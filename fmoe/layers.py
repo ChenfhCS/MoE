@@ -282,7 +282,7 @@ class FMoE(nn.Module):
         start_step =0
         num_experts = total_experts
 
-        print('total tokens is {}, dimension is {}'.format(moe_inp.size(0), moe_inp.size(1)))
+        # print('total tokens is {}, dimension is {}'.format(moe_inp.size(0), moe_inp.size(1)))
 
         # # ------------------------------------------------ save gate score ------------------------------------------------ # #
         save_gate_score = False
@@ -318,9 +318,9 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-        token_throttling = False
+        token_throttling = True
         if token_throttling == True:
-            threshold = 0.5
+            threshold = 0.3
             moe_inp_temp = moe_inp.clone().detach()
             if layer_idx == 0:
                 _, similarities = calculate_similarity(moe_inp_temp)
@@ -336,7 +336,7 @@ class FMoE(nn.Module):
 
 
         # # ----------------------------------------- workloads without throttling ------------------------------------------ # #
-        calculate_workloads = False
+        calculate_workloads = True
         if calculate_workloads == True and layer_idx == 0:
             for i in range(num_experts):
                 workload_in_experts = 0
@@ -346,7 +346,7 @@ class FMoE(nn.Module):
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads[i].append(workload_in_experts)
-            if training_step == 200:
+            if training_step == 10:
                 np.savez(f'./workloads/workloads_on_experts_gpt/worker_expert{self.moe_rank}.npz', self.workloads)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
@@ -361,7 +361,7 @@ class FMoE(nn.Module):
                         num_tokens = workload_tensor.size(0)
                         workload_in_experts += num_tokens
                 self.workloads_throttling[i].append(workload_in_experts)
-            if training_step == 200:
+            if training_step == 10:
                 np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
