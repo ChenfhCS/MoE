@@ -332,6 +332,7 @@ class FMoE(nn.Module):
                         similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
                         # same gate
                         similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
+                        print(i)
                         if similar_gate_out_idx != torch.Size([]):
                             ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
                             similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
