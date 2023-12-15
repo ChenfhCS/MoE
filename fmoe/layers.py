@@ -307,7 +307,7 @@ class FMoE(nn.Module):
 
         current_workloads = []
         if layer_idx == 0:
-            for step, threshold in enumerate([1-(i+0.1) for i in range(10)]):
+            for step, threshold in enumerate([1-(i*0.1) for i in range(10)]):
                 # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
                 token_throttling = True
                 if token_throttling == True:
@@ -340,10 +340,10 @@ class FMoE(nn.Module):
                             num_send = send.size(0)
                             traffic_size += num_send
                     self.traffic_new[step].append(traffic_size)
-                if training_step == 10:
-                    print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic_new[step])}')
+                if training_step == 2 and layer_idx == 0:
+                    print(f'device {moe_rank} has average traffic: {np.mean(self.traffic_new[step])}')
                     current_workloads.append(np.mean(self.traffic_new[step]))
-            if training_step == 10:
+            if training_step == 2 and layer_idx == 0:
                 print(current_workloads)
                 # # ----------------------------------------------------------------------------------------------------------------- # #
 
