@@ -377,7 +377,7 @@ class FMoE(nn.Module):
         # # --------------------------------------- save token to expert distribution --------------------------------------- # #
         save_token2expert = True
         if save_token2expert == True:
-            workload_in_experts = [0 for i in range(num_expert)]
+            workload_in_experts = [0 for i in range(num_experts)]
             for i in range(num_experts):
                 for j in range(top_k_value):
                     workload_tensor = torch.nonzero(gate_top_k_idx[:, j] == i).squeeze()
