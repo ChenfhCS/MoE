@@ -341,7 +341,7 @@ class FMoE(nn.Module):
                             traffic_size += num_send
                     self.traffic_new[step].append(traffic_size)
                 if training_step == 2 and layer_idx == 0:
-                    print(f'device {moe_rank} has average traffic: {np.mean(self.traffic_new[step])}')
+                    print(f'device {self.moe_rank} has average traffic: {np.mean(self.traffic_new[step])}')
                     current_workloads.append(np.mean(self.traffic_new[step]))
             if training_step == 2 and layer_idx == 0:
                 print(current_workloads)
