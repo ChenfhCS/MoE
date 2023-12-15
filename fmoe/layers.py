@@ -344,7 +344,7 @@ class FMoE(nn.Module):
                 current_workloads.append(np.mean(self.traffic))
                 self.traffic = []
                 threshold -= 0.1
-        else:
+        if layer_idx == 0 and threshold == 0:
             print(current_workloads)
 
                 # # ----------------------------------------------------------------------------------------------------------------- # #
