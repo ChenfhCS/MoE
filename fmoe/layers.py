@@ -386,7 +386,7 @@ class FMoE(nn.Module):
                         workload_in_experts[i] += num_tokens
             self.tokens_to_experts.append(workload_in_experts)
             if training_step == 25:
-                np.savez(f'./workloads/workloads_on_experts_distribution_xl/worker_{self.moe_rank}.npz', self.tokens_to_experts)
+                np.savez(f'./workloads/workloads_on_experts_distribution_bert/worker_{self.moe_rank}.npz', self.tokens_to_experts)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
         # token fusions (original, need to be modified)
