@@ -296,21 +296,6 @@ class FMoE(nn.Module):
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
-        # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
-        traffic_size = 0
-        calculate_traffic_size = False
-        if calculate_traffic_size == True:
-            for k in range(top_k_value):
-                send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
-                if send.dim() != 0:
-                    num_send = send.size(0)
-                    traffic_size += num_send
-            self.traffic.append(traffic_size*moe_inp.size(1))
-            if layer_idx == 0 and training_step == 200:
-                print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic)}')
-        # # ----------------------------------------------------------------------------------------------------------------- # #
-
-
         # # -------------------------------------- save token to calculate similarity --------------------------------------- # #
         save_tokens = False
         if save_tokens == True:
@@ -321,9 +306,9 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-        token_throttling = False
+        token_throttling = True
         if token_throttling == True:
-            threshold = 0.3
+            threshold = 1
             moe_inp_temp = moe_inp.clone().detach()
             if layer_idx == 0:
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
@@ -340,6 +325,21 @@ class FMoE(nn.Module):
                             similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
                             keep_token_mask[ignore_tokens_idx] = 0
                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
+        # # ----------------------------------------------------------------------------------------------------------------- # #
+
+
+        # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
+        traffic_size = 0
+        calculate_traffic_size = True
+        if calculate_traffic_size == True:
+            for k in range(top_k_value):
+                send = torch.nonzero(gate_top_k_idx_new[:, k] != self.moe_rank).squeeze()
+                if send.dim() != 0:
+                    num_send = send.size(0)
+                    traffic_size += num_send
+            self.traffic.append(traffic_size)
+            if layer_idx == 0 and training_step == 10:
+                print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic)}')
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
@@ -360,7 +360,7 @@ class FMoE(nn.Module):
 
 
         # # ------------------------------------------ workloads with throttling -------------------------------------------- # #
-        if token_throttling == True and layer_idx == 0:
+        if token_throttling == True and layer_idx == 0 and calculate_workloads == True:
             for i in range(num_experts):
                 workload_in_experts = 0
                 for j in range(top_k_value):
@@ -375,7 +375,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- save token to expert distribution --------------------------------------- # #
-        save_token2expert = True
+        save_token2expert = False
         if save_token2expert == True:
             workload_in_experts = [0 for i in range(num_experts)]
             for i in range(num_experts):
