@@ -525,4 +525,4 @@ class FMoE(nn.Module):
         ), "MoE outputs must have the same batch size"
 
         # print('the communication in a forward layer is: ', comm_time)
-        return moe_outp, time_costs, comm_time, traffic_size
+        return moe_outp, time_costs, comm_time, 0
