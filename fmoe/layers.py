@@ -306,7 +306,7 @@ class FMoE(nn.Module):
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
         current_workloads = []
-        if layer_idx == 0 and threshold > 0:
+        if layer_idx == 0:
             for step, threshold in enumerate([1-(i+0.1) for i in range(10)]):
                 # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
                 token_throttling = True
