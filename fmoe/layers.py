@@ -338,7 +338,7 @@ class FMoE(nn.Module):
                 if send.dim() != 0:
                     num_send = send.size(0)
                     traffic_size += num_send
-            self.traffic_new[step].append(traffic_size)
+            self.traffic.append(traffic_size)
         if training_step == 2 and layer_idx == 0:
             print(f'device {self.moe_rank} has average traffic: {np.mean(self.traffic)}')
         # # ----------------------------------------------------------------------------------------------------------------- # #
