@@ -190,6 +190,7 @@ class FMoE(nn.Module):
 
         # calculate traffic size per batch
         self.traffic = []
+        self.traffic_new = [[] for i in range(10)]
 
         # save token to expert distribution 
         self.tokens_to_experts = []
@@ -305,48 +306,45 @@ class FMoE(nn.Module):
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
         current_workloads = []
-        threshold = 1
         if layer_idx == 0 and threshold > 0:
-            # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-            token_throttling = True
-            if token_throttling == True:
-                moe_inp_temp = moe_inp.clone().detach()
-                if layer_idx == 0:
-                    gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
-                    _, similarities = calculate_similarity(moe_inp_temp)
-                    keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
-                    for i in range(len(similarities)):
-                        if keep_token_mask[i] == True:
-                            similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
-                            similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
-                            # same gate
-                            similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
-                            if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
-                                ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
-                                similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
-                                keep_token_mask[ignore_tokens_idx] = 0
-                    gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
-            # # ----------------------------------------------------------------------------------------------------------------- # #
+            for step, threshold in enumerate([1-(i+0.1) for i in range(10)]):
+                # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
+                token_throttling = True
+                if token_throttling == True:
+                    moe_inp_temp = moe_inp.clone().detach()
+                    if layer_idx == 0:
+                        gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
+                        _, similarities = calculate_similarity(moe_inp_temp)
+                        keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
+                        for i in range(len(similarities)):
+                            if keep_token_mask[i] == True:
+                                similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
+                                similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
+                                # same gate
+                                similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
+                                if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
+                                    ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
+                                    similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
+                                    keep_token_mask[ignore_tokens_idx] = 0
+                        gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
+                # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
-            # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
-            traffic_size = 0
-            calculate_traffic_size = True
-            if calculate_traffic_size == True and layer_idx == 0:
-                for k in range(top_k_value):
-                    send = torch.nonzero(gate_top_k_idx_new[:, k] != self.moe_rank).squeeze()
-                    if send.dim() != 0:
-                        num_send = send.size(0)
-                        traffic_size += num_send
-                self.traffic.append(traffic_size)
-            if training_step%10 == 0 and training_step > 0:
-                print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic)}')
-                current_workloads.append(np.mean(self.traffic))
-                self.traffic = []
-                threshold -= 0.1
-        if layer_idx == 0 and threshold == 0:
-            print(current_workloads)
-
+                # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
+                traffic_size = 0
+                calculate_traffic_size = True
+                if calculate_traffic_size == True and layer_idx == 0:
+                    for k in range(top_k_value):
+                        send = torch.nonzero(gate_top_k_idx_new[:, k] != self.moe_rank).squeeze()
+                        if send.dim() != 0:
+                            num_send = send.size(0)
+                            traffic_size += num_send
+                    self.traffic_new[step].append(traffic_size)
+                if training_step == 10:
+                    print(f'layer {layer_idx} has average traffic: {np.mean(self.traffic_new[step])}')
+                    current_workloads.append(np.mean(self.traffic_new[step]))
+            if training_step == 10:
+                print(current_workloads)
                 # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
