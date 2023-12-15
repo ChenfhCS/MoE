@@ -310,7 +310,7 @@ class FMoE(nn.Module):
         token_throttling = True
         if token_throttling == True:
             moe_inp_temp = moe_inp.clone().detach()
-            threshold = 0.9
+            threshold = 0.8
             if layer_idx == 0:
                 gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
                 _, similarities = calculate_similarity(moe_inp_temp)
