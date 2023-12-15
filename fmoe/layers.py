@@ -367,17 +367,17 @@ class FMoE(nn.Module):
 
 
         # # ------------------------------------------ workloads with throttling -------------------------------------------- # #
-        if token_throttling == True and layer_idx == 0 and calculate_workloads == True:
-            for i in range(num_experts):
-                workload_in_experts = 0
-                for j in range(top_k_value):
-                    workload_tensor = torch.nonzero(gate_top_k_idx_new[:, j] == i).squeeze()
-                    if workload_tensor.dim() != 0:
-                        num_tokens = workload_tensor.size(0)
-                        workload_in_experts += num_tokens
-                self.workloads_throttling[i].append(workload_in_experts)
-            if training_step == 200:
-                np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
+        # if token_throttling == True and layer_idx == 0 and calculate_workloads == True:
+        #     for i in range(num_experts):
+        #         workload_in_experts = 0
+        #         for j in range(top_k_value):
+        #             workload_tensor = torch.nonzero(gate_top_k_idx_new[:, j] == i).squeeze()
+        #             if workload_tensor.dim() != 0:
+        #                 num_tokens = workload_tensor.size(0)
+        #                 workload_in_experts += num_tokens
+        #         self.workloads_throttling[i].append(workload_in_experts)
+        #     if training_step == 200:
+        #         np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
