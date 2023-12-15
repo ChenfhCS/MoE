@@ -191,6 +191,9 @@ class FMoE(nn.Module):
         # calculate traffic size per batch
         self.traffic = []
 
+        # save token to expert distribution 
+        self.tokens_to_experts = []
+
     def expert_fn(self, inp, fwd_expert_count):
         r"""
         The default expert function which either calls the experts as a whole
@@ -318,7 +321,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ---------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
             threshold = 0.3
             moe_inp_temp = moe_inp.clone().detach()
@@ -341,7 +344,7 @@ class FMoE(nn.Module):
 
 
         # # ----------------------------------------- workloads without throttling ------------------------------------------ # #
-        calculate_workloads = True
+        calculate_workloads = False
         if calculate_workloads == True and layer_idx == 0:
             for i in range(num_experts):
                 workload_in_experts = 0
@@ -370,6 +373,21 @@ class FMoE(nn.Module):
                 np.savez(f'./workloads/workloads_on_experts_gpt_throttling/worker_expert{self.moe_rank}.npz', self.workloads_throttling)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
+
+        # # --------------------------------------- save token to expert distribution --------------------------------------- # #
+        save_token2expert = True
+        if save_token2expert == True:
+            workload_in_experts = [0 for i in range(num_expert)]
+            for i in range(num_experts):
+                for j in range(top_k_value):
+                    workload_tensor = torch.nonzero(gate_top_k_idx[:, j] == i).squeeze()
+                    if workload_tensor.dim() != 0:
+                        num_tokens = workload_tensor.size(0)
+                        workload_in_experts[i] += num_tokens
+            self.tokens_to_experts.append(workload_in_experts)
+            if training_step == 25:
+                np.savez(f'./workloads/workloads_on_experts_distribution_xl/worker_{self.moe_rank}.npz', self.tokens_to_experts)
+        # # ----------------------------------------------------------------------------------------------------------------- # #
 
         # token fusions (original, need to be modified)
         if fuse_token == True and train_step > start_step:
