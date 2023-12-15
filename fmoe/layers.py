@@ -331,7 +331,7 @@ class FMoE(nn.Module):
         # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
         traffic_size = 0
         calculate_traffic_size = True
-        if calculate_traffic_size == True:
+        if calculate_traffic_size == True and layer_idx == 0:
             for k in range(top_k_value):
                 send = torch.nonzero(gate_top_k_idx_new[:, k] != self.moe_rank).squeeze()
                 if send.dim() != 0:
