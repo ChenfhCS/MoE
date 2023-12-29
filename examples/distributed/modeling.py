@@ -114,8 +114,6 @@ def Create_MoE_Model(**kwargs):
         # config.moe_group = kwargs['moe_group']
         # config.moe_group = None
         config.moe_world_size = kwargs['moe_world_size']
-        config.n_positions = 512
-        config_load.n_positions = 512
 
         # modelForLoad = GPT2LMHeadModel.from_pretrained("gpt2",config=config_load)
         modelForLoad = GPT2LMHeadModel(config=config_load, moe_group = kwargs['moe_group'])
