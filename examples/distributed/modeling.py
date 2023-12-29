@@ -50,13 +50,6 @@ def Create_MoE_Model(**kwargs):
         # print(modelForLoad.state_dict().keys(),mymoe.state_dict().keys())
         mymoeParam = mymoe.state_dict()
         bertParam = modelForLoad.state_dict()
-        # original weight = ['transformer.layers.0.pos_ff.CoreNet.0.weight', 'transformer.layers.0.pos_ff.CoreNet.0.bias', 
-        # 'transformer.layers.0.pos_ff.CoreNet.3.weight', 
-        # 'transformer.layers.0.pos_ff.CoreNet.3.bias']
-        # desity weight = ['transformer.h.11.moe_linear.experts.15.htoh4.weight', 'transformer.h.11.moe_linear.experts.15.htoh4.bias', 
-        # 'transformer.h.11.moe_linear.experts.15.h4toh.weight', 'transformer.h.11.moe_linear.experts.15.h4toh.bias',]
-        # original_layer_normal = ['transformer.layers.0.pos_ff.layer_norm.weight', 'transformer.layers.0.pos_ff.layer_norm.bias']
-        # desitny weight = ['transformer.h.11.moe_linear.layer_norm.weight', 'transformer.h.11.moe_linear.layer_norm.bias',]
 
         # copy linear weight, bias and layernormal
         for layer in range(config.n_layer):

@@ -18,6 +18,10 @@ from utils import create_exp_dir
 from modeling import Create_MoE_Model, save_model
 from training import train_xl_MoE, train_Bert_MoE, train_GPT_MoE
 
+# # FasterMoE optimization
+# os.environ['FMOE_FASTER_SCHEDULE_ENABLE']="ON"
+# os.environ['FMOE_FASTER_SHADOW_ENABLE']="ON"
+
 # 忽略所有UserWarning
 warnings.simplefilter(action='ignore', category=Warning)
 

@@ -35,6 +35,7 @@ from ...modeling_outputs import (
     SequenceClassifierOutputWithPast,
     TokenClassifierOutput,
 )
+
 from ...modeling_utils import PreTrainedModel, SequenceSummary
 from ...pytorch_utils import Conv1D, find_pruneable_heads_and_indices, prune_conv1d_layer
 from ...utils import (
@@ -385,13 +386,14 @@ class GPT2MLP(nn.Module):
 
 from fmoe.transformer import FMoETransformerMLP
 class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
-    def __init__(self, d_model, d_inner, dropout, pre_lnorm=True, moe_num_expert=64, moe_world_size=1, moe_group=None, moe_top_k=2):
+    def __init__(self, d_model, d_inner, dropout, pre_lnorm=False, moe_num_expert=64, moe_world_size=1, moe_group=None, moe_top_k=2):
         activation = nn.Sequential(
             nn.ReLU(),
             nn.Dropout(dropout)
         )
         super().__init__(num_expert=moe_num_expert, d_model=d_model, d_hidden=d_inner, world_size=moe_world_size, moe_group=moe_group,
             top_k=moe_top_k, activation=activation)
+
         self.pre_lnorm = pre_lnorm
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
@@ -399,20 +401,20 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp),layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(self.layer_norm(inp), layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
             output = self.layer_norm(inp + core_out)
 
-        return output # , fusion_costs
+        return output, fusion_costs, comm_time
 
 
 class GPT2Block(nn.Module):
@@ -493,6 +495,8 @@ class GPT2Block(nn.Module):
             outputs = outputs + cross_attn_outputs[2:]  # add cross attentions if we output attention weights
 
         residual = hidden_states
+        fusion_costs = 0
+        comm_time = 0
         if not self.moe:
             hidden_states = self.ln_2(hidden_states)
             feed_forward_hidden_states = self.mlp(hidden_states)
@@ -505,7 +509,7 @@ class GPT2Block(nn.Module):
             # # token_4 = tensor_temp[3, :, :]
             # tokens = torch.cat((token_1,token_2), 0)
             # calculate_distance(tokens)
-            feed_forward_hidden_states = self.moe_linear(hidden_states, self.layer_idx, training_step)
+            feed_forward_hidden_states, fusion_costs, comm_time = self.moe_linear(hidden_states, self.layer_idx, training_step)
         # residual connection
 
         hidden_states = residual + feed_forward_hidden_states
@@ -515,7 +519,8 @@ class GPT2Block(nn.Module):
         else:
             outputs = (hidden_states,) + outputs[1:]
 
-        return outputs  # hidden_states, present, (attentions, cross_attentions)
+        # return outputs  # hidden_states, present, (attentions, cross_attentions)
+        return outputs, fusion_costs, comm_time
 
 
 class GPT2PreTrainedModel(PreTrainedModel):
@@ -947,6 +952,8 @@ class GPT2Model(GPT2PreTrainedModel):
         all_self_attentions = () if output_attentions else None
         all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
         all_hidden_states = () if output_hidden_states else None
+        total_throttling_costs = 0
+        total_comm_costs = 0
         for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
             # Model parallel
             if self.model_parallel:
@@ -981,7 +988,7 @@ class GPT2Model(GPT2PreTrainedModel):
                     encoder_attention_mask,
                 )
             else:
-                outputs = block(
+                outputs, throttling_costs, comm_costs = block(
                     hidden_states,
                     layer_past=layer_past,
                     attention_mask=attention_mask,
@@ -992,6 +999,8 @@ class GPT2Model(GPT2PreTrainedModel):
                     output_attentions=output_attentions,
                     training_step=training_step,
                 )
+            total_throttling_costs += throttling_costs
+            total_comm_costs += comm_costs
 
             hidden_states = outputs[0]
             if use_cache is True:
@@ -1028,6 +1037,8 @@ class GPT2Model(GPT2PreTrainedModel):
             hidden_states=all_hidden_states,
             attentions=all_self_attentions,
             cross_attentions=all_cross_attentions,
+            total_throttling_costs=total_throttling_costs,
+            total_comm_costs=total_comm_costs,
         )
 
 
@@ -1207,6 +1218,8 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             hidden_states=transformer_outputs.hidden_states,
             attentions=transformer_outputs.attentions,
             cross_attentions=transformer_outputs.cross_attentions,
+            total_throttling_costs=transformer_outputs.total_throttling_costs,
+            total_comm_costs=transformer_outputs.total_comm_costs,
         )
 
     @staticmethod

@@ -113,6 +113,8 @@ def train_xl_MoE(**kwargs):
             elapsed_all = 0
             loss_log = 0
             elapsed_log = 0
+            throttling_costs = 0
+            comm_costs = 0
             for batch in train_dataloader:
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
@@ -130,10 +132,11 @@ def train_xl_MoE(**kwargs):
                     wandb.log({'batch_loss': loss_all/step})
                     # wandb.log({'batch_loss': loss_all})
                 # break
-
+                throttling_costs += outputs.total_throttling_costs
+                comm_costs += outputs.total_comm_costs
                 if local_rank == 0:
-                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}, mean throttling time {:.2f}, mean comm time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000, (throttling_costs/step)*1000, (comm_costs/step)*1000) )
                     progress_bar.update(1)
 
                 if step % eval_interval == 0:
@@ -397,7 +400,8 @@ def train_Bert_MoE(**kwargs):
             loss_log = 0
             elapsed_all = 0
             elapsed_log = 0
-
+            throttling_costs = 0
+            comm_costs = 0
             for batch in train_dataloader:
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
@@ -414,9 +418,11 @@ def train_Bert_MoE(**kwargs):
                 if use_wandb is True and local_rank == 0:
                     wandb.log({'batch_loss': loss_all/step})
                     # wandb.log({'batch_loss': loss_all})
+                throttling_costs += outputs.total_throttling_costs
+                comm_costs += outputs.total_comm_costs
                 if local_rank == 0:
-                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}, mean throttling time {:.2f}, mean comm time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000, (throttling_costs/step)*1000, (comm_costs/step)*1000) )
                     progress_bar.update(1)
             # dict_router = {}
             # index = 0
@@ -577,6 +583,8 @@ def train_GPT_MoE(**kwargs):
             elapsed_all = 0
             loss_log = 0
             elapsed_log = 0
+            throttling_costs = 0
+            comm_costs = 0
             for batch in train_dataloader:
                 # break
                 batch = {k: v.to(device) for k, v in batch.items()}
@@ -594,9 +602,11 @@ def train_GPT_MoE(**kwargs):
                     wandb.log({'batch_loss': loss_all/step})
                     # wandb.log({'batch_loss': loss_all})
                 # break
+                throttling_costs += outputs.total_throttling_costs
+                comm_costs += outputs.total_comm_costs
                 if local_rank == 0:
-                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}'.format(
-                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000))
+                    progress_bar.set_description('Epoch {} | Loss {:.2f} | acc {:.2f} | mean batch time {:.2f}, mean throttling time {:.2f}, mean comm time {:.2f}'.format(
+                                                epoch, (loss_all/step), best_acc, (elapsed_all/step)*1000, (throttling_costs/step)*1000, (comm_costs/step)*1000) )
                     progress_bar.update(1)
                 torch.cuda.empty_cache()
             # dict_router = {}

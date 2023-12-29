@@ -23,17 +23,13 @@ def calculate_similarity(embs, hash_codes):
     embs_temp = embs.clone().detach().cpu()
     distances = []
     similarities = []
+    # # method 1
+    # similarity_cal = torch.cosine_similarity(embs_temp.unsqueeze(1), embs_temp.unsqueeze(0), dim=-1)
+    # method 2
+    embs_temp = embs_temp / torch.norm(embs_temp, dim=-1, keepdim=True) # 方差归一化，即除以各自的模
+    similarity_cal = torch.mm(embs_temp, embs_temp.T)
     for i in range(embs.size(0)):
-        similarity_tensor = torch.zeros(embs.size(0), dtype=torch.float32) # initialize similarity
-        compare_token_index = torch.nonzero(hash_codes == hash_codes[i]).view(-1) # choose tokens with same hash codes
-        if compare_token_index.size(0) > 0:
-            compare_emb = torch.zeros(compare_token_index.size(0), embs.size(1), dtype=torch.float32)
-            compare_emb[:, :] = embs[i,:]
-            similarity_cal = nn.functional.cosine_similarity(compare_emb, embs_temp[compare_token_index])
-            similarity_tensor[compare_token_index] = similarity_cal
-        # distance_tensor = dis_func(compare_emb, embs_temp)
-        similarities.append(similarity_tensor[i:])
-        # distances.append(distance_tensor[i:])
+        similarities.append(similarity_cal[i, :].squeeze()[i:])
     return distances, similarities
 
 
@@ -80,17 +76,18 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
-    comm_time_start = time.time()
+    # comm_time_start = time.time()
     x = tree.map_structure(scatter_func, inp)
-    comm_time += time.time() - comm_time_start
+    # comm_time += time.time() - comm_time_start
 
-
+    comm_time_start = time.time()
     x = expert_fn(x, fwd_expert_count)
+    comm_time += time.time() - comm_time_start
 
     out_batch_size = tree.flatten(inp)[0].shape[0]
     if len(gate.shape) == 2:
         out_batch_size *= gate.shape[1]
-
+    
     def gather_func(tensor):
         return MOEGather.apply(
             tensor,
@@ -101,11 +98,10 @@ def _fmoe_general_global_forward(inp, gate, expert_fn, num_expert, world_size, *
             world_size,
         )
 
-    comm_time_start = time.time()
+    # comm_time_start = time.time()
     outp = tree.map_structure(gather_func, x)
-    comm_time += time.time() - comm_time_start
+    # comm_time += time.time() - comm_time_start
     return outp, comm_time
-
 
 fmoe_faster_schedule = False
 if switch_from_env('FMOE_FASTER_SCHEDULE_ENABLE', False):
@@ -218,7 +214,7 @@ class FMoE(nn.Module):
             base_idx += batch_size
         return torch.cat(outputs, dim=0)
 
-    def expert_fn_single(self, inp, fwd_expert_count, idx):
+    def expert_fn_single(self, inp, fwd_expert_count, idx=0):
         r"""
         forward single expert for smart scheduling.
         """
@@ -287,7 +283,7 @@ class FMoE(nn.Module):
             gate_top_k_idx = gate_top_k_idx[mask == 0, :]
 
         top_k_value = top_k
-        time_costs = 0
+        throttling_costs = 0
         start_step =0
         num_experts = total_experts
 
@@ -352,27 +348,40 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ----------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
+            time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
-            threshold = 0.5
-            if layer_idx == 0:
-                gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
-                _, similarities = calculate_similarity(moe_inp_temp, gate_top_k_idx_temp)
-                keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
-                for i in range(len(similarities)):
-                    if keep_token_mask[i] == True:
-                        similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
-                        similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
-                        # same gate
-                        similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
-                        if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
-                            ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
-                            similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
-                            keep_token_mask[ignore_tokens_idx] = 0
-                gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
+            threshold = 0.1
+            gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
+            # gate as the hash codes
+            hash_code = gate_top_k_idx_temp[:, 0].view(-1)
+            # all compare
+            # hash_code = torch.zeros(gate_top_k_idx_temp.size(0), dtype=torch.int32)
+            _, similarities = calculate_similarity(moe_inp_temp, hash_code)
+            keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
+            replace_mask = torch.zeros(moe_inp_temp.size(0), dtype=torch.int64)
+            send_id = 0
+            for i in range(len(similarities)):
+                if keep_token_mask[i] == True: # threshold 越小，for循环次数越少，因此开销越低
+                    similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
+                    similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
+                    # same gate
+                    similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
+                    if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
+                        ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
+                        similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
+                        keep_token_mask[ignore_tokens_idx] = 0
+                        replace_mask[ignore_tokens_idx] = send_id
+                        send_id += 1
+            throttling_costs = time.time() - time_start
+            # gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
+                # print("similarity calculation time costs: ",time.time()-time_start)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
+        if token_throttling == True:
+            moe_inp = moe_inp[keep_token_mask]
+            gate_top_k_idx = gate_top_k_idx[keep_token_mask]
 
         # # ----------------------------------------- workloads without throttling ------------------------------------------ # #
         calculate_workloads = False
@@ -420,49 +429,20 @@ class FMoE(nn.Module):
                 np.savez(f'./workloads/workloads_on_experts_distribution_gpt/worker_layer{layer_idx}_{self.moe_rank}.npz', self.tokens_to_experts)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
-        # token fusions (original, need to be modified)
-        if fuse_token == True and train_step > start_step:
-            time_start = time.time()
-            gate_top_k_idx_temp = gate_top_k_idx.clone().detach().to(gate_top_k_idx.device)
-            # fuse inputs and gates
-            batch_size = original_shape[1]
-            num_token_per_input = original_shape[0]
-            # output_temp = moe_inp.clone().detach().unsqueeze(1)
-            output_temp = torch.zeros(moe_inp.size(0), top_k_value, moe_inp.size(1), dtype=torch.float32).to(gate_top_k_idx.device)
-            # fused_input = torch.zeros(batch_size*num_experts, moe_inp.size(1), dtype=torch.float32)
-            # fused_gate = torch.zeros(batch_size*num_experts, 1, dtype=torch.int64)
-        
-            fused_input = torch.zeros(num_experts, moe_inp.size(1), dtype=torch.float32)
-            fused_input_k = torch.zeros(num_experts, top_k_value, moe_inp.size(1), dtype = torch.float32)
-            fused_gate = torch.zeros(num_experts, top_k_value, dtype=torch.int64)
-            # fused_gate_score = torch.zeros(batch_size*num_experts, 1, dtype=torch.float32)
-            # for i in range(batch_size):
-                # gate_per_input = gate_top_k_idx[i*num_token_per_input:(i+1)*num_token_per_input]
-                # for j in range(num_experts):
-                #     mask = torch.nonzero(gate_per_input[:,0]==j).squeeze()
-                #     if mask.nelement() > 0:
-                #         mask = mask+(i*num_token_per_input)
-                #         fused_input[i*num_experts+j, :] = torch.mean(moe_inp[mask, :], dim=0)
-                #         fused_gate[i*num_experts+j, :] = j
-            # fuse all tokens in the same experts
-            for j in range(num_experts):
-                for k in range(top_k_value):
-                    mask = torch.nonzero(gate_top_k_idx[:,k]==j).squeeze()
-                    if mask.nelement() > 0:
-                        fused_input_k[j, k, :] = torch.mean(moe_inp[mask, :], dim=0)
-                    fused_gate[j, k] = j
-                fused_input[j, :] = torch.mean(fused_input_k[j, :, :], dim=0)
-
-            # print(fused_input)
-            moe_inp = fused_input.to(moe_inp.device)
-            gate_top_k_idx = fused_gate.to(gate_top_k_idx.device)
-            time_costs += time.time() - time_start
-
-        fwd, comm_time = _fmoe_general_global_forward(
-            moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
-            self.num_expert, self.world_size,
-            experts=self.experts
-        )
+        time_start = time.time()
+        if os.environ.get('FMOE_FASTER_SCHEDULE_ENABLE') == '1':
+            fwd = _fmoe_general_global_forward(
+                moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
+                self.num_expert, self.world_size,
+                experts=self.experts
+            )
+        else:
+            fwd, _ = _fmoe_general_global_forward(
+                moe_inp, gate_top_k_idx, self.expert_fn_single if fmoe_faster_schedule else self.expert_fn,
+                self.num_expert, self.world_size,
+                experts=self.experts
+            )
+        comm_time = time.time() - time_start
 
         # recover deleted tensors
         if self.mask is not None and self.mask_dict is not None:
@@ -495,29 +475,11 @@ class FMoE(nn.Module):
 
             moe_outp = tree.map_structure(view_func, fwd)
 
-        # print('output size: ', moe_outp.size())
-        # recovery outputs
-        if fuse_token == True and train_step > start_step:
-            time_start = time.time()
-            # for i in range(batch_size):
-            #     gate_per_input = gate_top_k_idx_temp[i*num_token_per_input:(i+1)*num_token_per_input]
-            #     for j in range(num_experts):
-            #         mask = torch.nonzero(gate_per_input[:, 0]==j).squeeze()
-            #         if mask.nelement() > 0:
-            #             mask = mask + (i*num_token_per_input)
-            #             output_temp[mask, 0, :] = moe_outp[i*num_experts+j, 0, :]
-            #             output_temp[mask, 1:, :] = moe_outp[i*num_experts+j, 1, :]
 
-            for j in range(num_experts):
-                for k in range(top_k_value):
-                    mask = torch.nonzero(gate_top_k_idx_temp[:, k]==j).squeeze()
-                    if mask.nelement() > 0:
-                        output_temp[mask, k, :] = moe_outp[j, k, :]
-
+        if token_throttling == True:
+            output_temp = torch.zeros(moe_inp.size(0), top_k_value, moe_inp.size(1), dtype=torch.float32).to(gate_top_k_idx.device)
+            output_temp = moe_outp[replace_mask]
             moe_outp = output_temp
-            gate_top_k_idx = gate_top_k_idx_temp
-            time_costs += time.time() - time_start
-        # print("output size: ", moe_outp.size())
 
         gate_score = gate_score.view(-1, 1, self.top_k)
 
@@ -549,4 +511,4 @@ class FMoE(nn.Module):
         ), "MoE outputs must have the same batch size"
 
         # print('the communication in a forward layer is: ', comm_time)
-        return moe_outp, time_costs, comm_time, 0
+        return moe_outp, throttling_costs, comm_time, 0

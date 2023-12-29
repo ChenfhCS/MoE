@@ -71,4 +71,4 @@ class FMoETransformerMLP(FMoE):
         output, fusion_costs, comm_time, traffic_size = super().forward(inp, original_shape, self.total_experts, self.top_k, 
                                                                         layer_idx = layer_idx, fuse_token=fuse_token, training_step=training_step)
         # return output.reshape(original_shape), fusion_costs, comm_time, traffic_size
-        return output.reshape(original_shape), fusion_costs
+        return output.reshape(original_shape), fusion_costs, comm_time

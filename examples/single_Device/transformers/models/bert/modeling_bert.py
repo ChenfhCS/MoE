@@ -506,20 +506,20 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp), layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(self.layer_norm(inp), layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
             output = self.layer_norm(inp + core_out)
 
-        return output # , fusion_costs
+        return output, fusion_costs, comm_time
 
 class BertLayer(nn.Module):
     def __init__(self, config, layer_idx):
@@ -601,19 +601,22 @@ class BertLayer(nn.Module):
             cross_attn_present_key_value = cross_attention_outputs[-1]
             present_key_value = present_key_value + cross_attn_present_key_value
 
+        throttling_costs = 0
+        comm_costs = 0
         if not self.moe:
             layer_output = apply_chunking_to_forward(
                 self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output
             )
             outputs = (layer_output,) + outputs
         else:
-            outputs = (self.moe_linear(attention_output, self.layer_idx, training_step),) + outputs
+            outputs_temp, throttling_costs, comm_costs = self.moe_linear(attention_output, self.layer_idx, training_step)
+            outputs = (outputs_temp,) + outputs
         # self.CustomizedMoEPositionwiseFF()
         # if decoder, return the attn key/values as the last output
         if self.is_decoder:
             outputs = outputs + (present_key_value,)
 
-        return outputs
+        return outputs, throttling_costs, comm_costs
 
     def feed_forward_chunk(self, attention_output):
         intermediate_output = self.intermediate(attention_output)
@@ -654,6 +657,8 @@ class BertEncoder(nn.Module):
                 use_cache = False
 
         next_decoder_cache = () if use_cache else None
+        total_throttling_costs = 0
+        total_comm_costs = 0
         for i, layer_module in enumerate(self.layer):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
@@ -679,7 +684,7 @@ class BertEncoder(nn.Module):
                     training_step,
                 )
             else:
-                layer_outputs = layer_module(
+                layer_outputs, throttling_costs, comm_costs = layer_module(
                     hidden_states,
                     attention_mask,
                     layer_head_mask,
@@ -689,6 +694,8 @@ class BertEncoder(nn.Module):
                     output_attentions,
                     training_step,
                 )
+            total_throttling_costs += throttling_costs
+            total_comm_costs += comm_costs
 
             hidden_states = layer_outputs[0]
             if use_cache:
@@ -719,6 +726,8 @@ class BertEncoder(nn.Module):
             hidden_states=all_hidden_states,
             attentions=all_self_attentions,
             cross_attentions=all_cross_attentions,
+            total_throttling_costs=total_throttling_costs,
+            total_comm_costs=total_comm_costs,
         )
 
 
@@ -1117,6 +1126,8 @@ class BertModel(BertPreTrainedModel):
             hidden_states=encoder_outputs.hidden_states,
             attentions=encoder_outputs.attentions,
             cross_attentions=encoder_outputs.cross_attentions,
+            total_throttling_costs=encoder_outputs.total_throttling_costs,
+            total_comm_costs=encoder_outputs.total_comm_costs,
         )
 
 
@@ -1968,4 +1979,6 @@ class BertForQuestionAnswering(BertPreTrainedModel):
             end_logits=end_logits,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
+            total_throttling_costs=outputs.total_throttling_costs,
+            total_comm_costs=outputs.total_comm_costs,
         )

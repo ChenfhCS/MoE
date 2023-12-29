@@ -140,11 +140,11 @@ class GPT2Config(PretrainedConfig):
     def __init__(
         self,
         vocab_size=50257,
-        n_positions=1024,
+        n_positions=512,
         n_embd=768,
         n_layer=12,
         n_head=12,
-        n_inner=None,
+        n_inner=4*768,
         activation_function="gelu_new",
         resid_pdrop=0.1,
         embd_pdrop=0.1,

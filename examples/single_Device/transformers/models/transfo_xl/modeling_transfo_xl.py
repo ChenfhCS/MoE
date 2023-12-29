@@ -274,20 +274,20 @@ class CustomizedMoEPositionwiseFF(FMoETransformerMLP):
     def forward(self, inp, layer_idx, training_step):
         if self.pre_lnorm:
             ##### layer normalization + positionwise feed-forward
-            core_out, _ = super().forward(self.layer_norm(inp), layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(self.layer_norm(inp), layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection
             output = core_out + inp
         else:
             ##### positionwise feed-forward
-            core_out, _ = super().forward(inp, layer_idx, training_step)
+            core_out, fusion_costs, comm_time = super().forward(inp, layer_idx, training_step)
             core_out = self.dropout(core_out)
 
             ##### residual connection + layer normalization
             output = self.layer_norm(inp + core_out)
 
-        return output # , fusion_costs
+        return output, fusion_costs, comm_time
 
 class RelPartialLearnableMultiHeadAttn(nn.Module):
     def __init__(
@@ -455,6 +455,8 @@ class RelPartialLearnableDecoderLayer(nn.Module):
             head_mask=head_mask,
             output_attentions=output_attentions,
         )
+        fusion_costs = 0
+        comm_time = 0
         if not self.moe:
             ff_output = self.pos_ff(attn_outputs[0])
         else:
@@ -468,10 +470,10 @@ class RelPartialLearnableDecoderLayer(nn.Module):
             # tokens = torch.cat((token_1,token_2,token_3,token_4), 0)
             # calculate_distance(tokens)
             # print('token embeddings: ', tokens.size())
-            ff_output = self.moe_linear(attn_outputs[0], layer_idx, training_step)
+            ff_output, fusion_costs, comm_time = self.moe_linear(attn_outputs[0], layer_idx, training_step)
         outputs = [ff_output] + attn_outputs[1:]
 
-        return outputs
+        return outputs, fusion_costs, comm_time
 
 
 class AdaptiveEmbedding(nn.Module):
@@ -703,6 +705,8 @@ class TransfoXLModelOutput(ModelOutput):
     mems: List[torch.FloatTensor] = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
+    total_throttling_costs: Optional[torch.FloatTensor] = None
+    total_comm_costs: Optional[torch.FloatTensor] = None
 
 
 @dataclass
@@ -737,6 +741,8 @@ class TransfoXLSequenceClassifierOutputWithPast(ModelOutput):
     mems: List[torch.FloatTensor] = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
+    total_throttling_costs: Optional[torch.FloatTensor] = None
+    total_comm_costs: Optional[torch.FloatTensor] = None
 
 
 @dataclass
@@ -1022,6 +1028,8 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
 
         hids = []
         attentions = [] if output_attentions else None
+        total_throttling_costs = 0
+        total_comm_costs = 0
         if self.attn_type == 0:  # default
             pos_seq = torch.arange(klen - 1, -1, -1.0, device=word_emb.device, dtype=word_emb.dtype)
             if self.clamp_len > 0:
@@ -1034,7 +1042,7 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
             for i, layer in enumerate(self.layers):
                 hids.append(core_out)
                 mems_i = None if mems is None else mems[i]
-                layer_outputs = layer(
+                layer_outputs, throttling_costs, comm_costs = layer(
                     core_out,
                     pos_emb,
                     dec_attn_mask=dec_attn_mask,
@@ -1044,6 +1052,8 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
                     layer_idx = i,
                     training_step = training_step,
                 )
+                total_throttling_costs += throttling_costs
+                total_comm_costs += comm_costs
                 core_out = layer_outputs[0]
                 if output_attentions:
                     attentions.append(layer_outputs[1])
@@ -1074,6 +1084,8 @@ class TransfoXLModel(TransfoXLPreTrainedModel):
             mems=new_mems,
             hidden_states=hids,
             attentions=attentions,
+            total_throttling_costs=total_throttling_costs,
+            total_comm_costs=total_comm_costs,
         )
 
 
@@ -1376,4 +1388,6 @@ class TransfoXLForSequenceClassification(TransfoXLPreTrainedModel):
             mems=transformer_outputs.mems,
             hidden_states=transformer_outputs.hidden_states,
             attentions=transformer_outputs.attentions,
+            total_throttling_costs=transformer_outputs.total_throttling_costs,
+            total_comm_costs=transformer_outputs.total_comm_costs,
         )
