@@ -331,10 +331,10 @@ class FMoE(nn.Module):
 
         # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
         traffic_size = 0
-        calculate_traffic_size = True
+        calculate_traffic_size = False
         if calculate_traffic_size == True:
             if layer_idx == 0 and self.moe_rank==0:
-                print('sequence length: ', moe_inp.size(0))
+                # print('sequence length: ', moe_inp.size(0))
             for k in range(top_k_value):
                 send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
                 if send.dim() != 0:
@@ -342,11 +342,9 @@ class FMoE(nn.Module):
                     traffic_size += num_send
             send_size = (traffic_size*moe_inp.size(1)*4*32*2)/(1024*1024*1024)
             self.traffic_new.append(send_size)
-        if training_step == 3 and self.moe_rank==0:
-            # print(f'layer {layer_idx} has average traffic (MB): {np.mean(self.traffic_new)}')
-            print(np.mean(self.traffic_new),',')
-    # if training_step == 2 and layer_idx == 0:
-    #     print(current_workloads)
+        # if training_step == 3 and self.moe_rank==0:
+        #     # print(f'layer {layer_idx} has average traffic (MB): {np.mean(self.traffic_new)}')
+        #     print(np.mean(self.traffic_new),',')
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
