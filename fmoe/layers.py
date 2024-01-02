@@ -332,6 +332,7 @@ class FMoE(nn.Module):
         # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
         traffic_size = 0
         calculate_traffic_size = True
+        print('sequence length: ', moe_inp.size(0))
         if calculate_traffic_size == True:
             for k in range(top_k_value):
                 send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
