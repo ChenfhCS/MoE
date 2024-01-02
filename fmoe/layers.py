@@ -191,7 +191,7 @@ class FMoE(nn.Module):
 
         # calculate traffic size per batch
         self.traffic = []
-        self.traffic_new = [[] for i in range(10)]
+        self.traffic_new = []
 
         # save token to expert distribution 
         self.tokens_to_experts = []
@@ -329,30 +329,31 @@ class FMoE(nn.Module):
         #                 gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
         # # # ----------------------------------------------------------------------------------------------------------------- # #
 
-            #     # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
-            #     traffic_size = 0
-            #     calculate_traffic_size = True
-            #     if calculate_traffic_size == True and layer_idx == 0:
-            #         for k in range(top_k_value):
-            #             send = torch.nonzero(gate_top_k_idx_new[:, k] != self.moe_rank).squeeze()
-            #             if send.dim() != 0:
-            #                 num_send = send.size(0)
-            #                 traffic_size += num_send
-            #         self.traffic_new[step].append(traffic_size)
-            #     if training_step == 2 and layer_idx == 0:
-            #         print(f'device {self.moe_rank} has average traffic: {np.mean(self.traffic_new[step])}')
-            #         current_workloads.append(np.mean(self.traffic_new[step]))
-            # if training_step == 2 and layer_idx == 0:
-            #     print(current_workloads)
-            #     # # ----------------------------------------------------------------------------------------------------------------- # #
+        # # -------------------------------------------- calculate traffic size --------------------------------------------- # #
+        traffic_size = 0
+        calculate_traffic_size = True
+        if calculate_traffic_size == True:
+            for k in range(top_k_value):
+                send = torch.nonzero(gate_top_k_idx[:, k] != self.moe_rank).squeeze()
+                if send.dim() != 0:
+                    num_send = send.size(0)
+                    traffic_size += num_send
+            send_size = (traffic_size*moe_inp.size(1)*4*32*2)/(1024*1024*1024)
+            self.traffic_new.append(send_size)
+        if training_step == 3 and self.moe_rank==0:
+            # print(f'layer {layer_idx} has average traffic (MB): {np.mean(self.traffic_new)}')
+            print(np.mean(self.traffic_new),',')
+    # if training_step == 2 and layer_idx == 0:
+    #     print(current_workloads)
+        # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
         # # --------------------------------------- token throttling with similarity ----------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
             time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
-            threshold = 0.1
+            threshold = 11
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
             # gate as the hash codes
             hash_code = gate_top_k_idx_temp[:, 0].view(-1)
@@ -360,12 +361,14 @@ class FMoE(nn.Module):
             # hash_code = torch.zeros(gate_top_k_idx_temp.size(0), dtype=torch.int32)
             _, similarities = calculate_similarity(moe_inp_temp, hash_code)
             keep_token_mask = torch.ones(moe_inp_temp.size(0), dtype=torch.bool)
-            replace_mask = torch.zeros(moe_inp_temp.size(0), dtype=torch.int64)
+            token_idx = np.array(range(moe_inp_temp.size(0)))
+            replace_mask = torch.tensor(token_idx, dtype=torch.int64)
             send_id = 0
             for i in range(len(similarities)):
                 if keep_token_mask[i] == True: # threshold 越小，for循环次数越少，因此开销越低
-                    similar_tokens_idx = torch.nonzero(similarities[i] >= threshold).view(-1)
+                    similar_tokens_idx = torch.nonzero(similarities[i] > threshold).view(-1)
                     similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
+                    replace_mask[i] = send_id
                     # same gate
                     similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
                     if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
@@ -373,13 +376,14 @@ class FMoE(nn.Module):
                         similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)
                         keep_token_mask[ignore_tokens_idx] = 0
                         replace_mask[ignore_tokens_idx] = send_id
-                        send_id += 1
+                    send_id += 1
             throttling_costs = time.time() - time_start
             # gate_top_k_idx_new = gate_top_k_idx_temp[keep_token_mask, :]
                 # print("similarity calculation time costs: ",time.time()-time_start)
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
         if token_throttling == True:
+            # print(replace_mask)
             moe_inp = moe_inp[keep_token_mask]
             gate_top_k_idx = gate_top_k_idx[keep_token_mask]
 
@@ -477,7 +481,7 @@ class FMoE(nn.Module):
 
 
         if token_throttling == True:
-            output_temp = torch.zeros(moe_inp.size(0), top_k_value, moe_inp.size(1), dtype=torch.float32).to(gate_top_k_idx.device)
+            # output_temp = torch.zeros(moe_inp.size(0), top_k_value, moe_inp.size(1), dtype=torch.float32).to(gate_top_k_idx.device)
             output_temp = moe_outp[replace_mask]
             moe_outp = output_temp
 
