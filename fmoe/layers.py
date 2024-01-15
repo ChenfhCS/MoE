@@ -348,7 +348,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ----------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
             time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
