@@ -343,13 +343,12 @@ class FMoE(nn.Module):
             send_size = (traffic_size*moe_inp.size(1)*4*32*2)/(1024*1024*1024)
             self.traffic_new.append(send_size)
         # if training_step == 3 and self.moe_rank==0:
-        #     # print(f'layer {layer_idx} has average traffic (MB): {np.mean(self.traffic_new)}')
         #     print(np.mean(self.traffic_new),',')
         # # ----------------------------------------------------------------------------------------------------------------- # #
 
 
         # # --------------------------------------- token throttling with similarity ----------------------------------------- # #
-        token_throttling = False
+        token_throttling = True
         if token_throttling == True:
             time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
@@ -487,11 +486,24 @@ class FMoE(nn.Module):
 
         gate_score = gate_score.view(-1, 1, self.top_k)
 
-        # # save token embeddings after expert execution
-        # if training_step == 1 and layer_idx == 0:
-        #     save_token_embeddings = moe_outp.clone().detach().cpu().numpy()
-        #     np.savez('./workloads/transformerxl_tokens_after_experts.npz', save_token_embeddings)
-        # training_step += 1
+
+        # # ------------------------------- save similarity before and after expert execution ------------------------------- # #
+        if training_step == 1:
+            moe_inp_temp = moe_inp.clone().detach()
+            moe_inp_temp = moe_inp_temp / torch.norm(moe_inp_temp, dim=-1, keepdim=True) # 方差归一化，即除以各自的模
+            similarity_cal = torch.mm(moe_inp_temp, moe_inp_temp.T)
+            save_similarity = similarity_cal.cpu().numpy()
+            np.savez('./workloads/similarity_before_after_experts/gpt_sim_before_experts_device{}_layer{}.npz'.format(self.moe_rank, layer_idx), save_similarity)
+
+        # save token similarity after expert execution
+        if training_step == 1:
+            moe_outp_temp = moe_outp[:,0,:].squeeze().clone().detach()
+            moe_outp_temp = moe_outp_temp / torch.norm(moe_outp_temp, dim=-1, keepdim=True) # 方差归一化，即除以各自的模
+            similarity_cal = torch.mm(moe_outp_temp, moe_outp_temp.T)
+            save_similarity = similarity_cal.cpu().numpy()
+            np.savez('./workloads/similarity_before_after_experts/gpt_sim_after_experts_device{}_layer{}.npz'.format(self.moe_rank, layer_idx), save_similarity)
+        # # ----------------------------------------------------------------------------------------------------------------- # #
+
 
         def bmm_func(tensor):
             dim = tensor.shape[-1]
