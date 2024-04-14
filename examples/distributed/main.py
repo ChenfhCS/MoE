@@ -46,7 +46,7 @@ parser.add_argument('--debug', action='store_true',
                     help='run in debug mode (do not create exp dir)')
 parser.add_argument('--log_interval', type=int, default=10,
                     help='report interval')
-parser.add_argument('--eval_interval', type=int, default=10,
+parser.add_argument('--eval_interval', type=int, default=1000,
                     help='report interval')
 parser.add_argument('--work_dir', default='LM-TFM', type=str,
                     help='experiment directory.')

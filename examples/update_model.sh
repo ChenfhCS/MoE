@@ -7,3 +7,5 @@ cp models/bert/modeling_bert.py /opt/conda/envs/moe_test/lib/python3.9/site-pack
 # gpt
 cp models/gpt2/configuration_gpt2.py /opt/conda/envs/moe_test/lib/python3.9/site-packages/transformers/models/gpt2/
 cp models/gpt2/modeling_gpt2.py /opt/conda/envs/moe_test/lib/python3.9/site-packages/transformers/models/gpt2/
+# output
+cp models/modeling_outputs.py /opt/conda/envs/moe_test/lib/python3.9/site-packages/transformers/
