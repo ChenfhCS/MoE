@@ -348,7 +348,7 @@ class FMoE(nn.Module):
 
 
         # # --------------------------------------- token throttling with similarity ----------------------------------------- # #
-        token_throttling = True
+        token_throttling = False
         if token_throttling == True:
             time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
@@ -369,7 +369,7 @@ class FMoE(nn.Module):
                     similar_tokens_idx_new = similar_tokens_idx[1:].add(i)
                     replace_mask[i] = send_id
                     # same gate
-                    similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i])
+                    similar_gate_out_idx = torch.nonzero(gate_top_k_idx_temp[similar_tokens_idx_new] == gate_top_k_idx_temp[i]).to(similar_tokens_idx_new.device)
                     if similar_gate_out_idx != torch.Size([]) and similar_tokens_idx_new.size(0) > 1:
                         ignore_tokens_idx = similar_tokens_idx_new[similar_gate_out_idx]
                         similar_tokens_idx_new = ignore_tokens_idx[1:].add(i)

@@ -74,11 +74,14 @@ if args.expert_parallel:
     world_size = int(os.environ['WORLD_SIZE'])
     # rank = dist.get_rank()
     # world_size = dist.get_world_size()
-    torch.cuda.set_device(local_rank)
+    if args.cuda:
+        torch.cuda.set_device(local_rank)
 else:
     local_rank = 0
     global_rank = 0
     world_size = 1
+    if args.cuda:
+        torch.cuda.set_device(local_rank)
 
 # log file
 tokyo = pytz.timezone('Asia/Tokyo')
