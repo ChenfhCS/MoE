@@ -6,7 +6,7 @@ A prototype system of distributed MoE based on FastMoE.  [**In-progress work**]
 * [Contents](#contents)
 * [Installation](#installation)
 * [Usage](#usage)
-  * [xl](####TransformerXL)
+  * [xl](#TransformerXL)
   * [bert](#Bert)
   * [gpt2](#GPT-2)
 
