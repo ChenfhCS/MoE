@@ -352,7 +352,7 @@ class FMoE(nn.Module):
         if token_throttling == True:
             time_start = time.time()
             moe_inp_temp = moe_inp.clone().detach()
-            threshold = 11
+            threshold = 0.2
             gate_top_k_idx_temp = gate_top_k_idx.clone().detach()
             # gate as the hash codes
             hash_code = gate_top_k_idx_temp[:, 0].view(-1)

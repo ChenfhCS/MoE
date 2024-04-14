@@ -86,7 +86,7 @@ def train_xl_MoE(**kwargs):
     if use_wandb is True and local_rank == 0:
         wandb.init(    # set the wandb project where this run will be logged
         project="moe",
-        name='moe-xl-gpu_4',
+        name='moe-xl-fast-base-1',
         settings=wandb.Settings(
         _stats_sample_rate_seconds=0.1,
         _stats_samples_to_average=1,
