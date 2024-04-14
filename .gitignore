@@ -1,5 +1,5 @@
 *.pyc
-data/
+my_examples/data/
 libtorch-shared-with-deps-*
 pytorch/cuda/build
 exp/
@@ -32,3 +32,18 @@ setup.py
 diagnostics.py
 cuda/
 my_examples/transformer-xl/works/-enwik9/
+my_examples/GPT2/works/
+*.log
+*.wandb
+*.yaml
+*.json
+*.ipynb
+*.txt
+*.bin
+*.npz
+*.zip
+*.pt
+*.tgz
+*.raw
+*.cfg
+*.bz2

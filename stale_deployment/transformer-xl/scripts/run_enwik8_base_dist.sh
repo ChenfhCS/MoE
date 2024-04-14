@@ -2,7 +2,7 @@
 
 if [[ $1 == 'train' ]]; then
     echo 'Run training...'
-    torchrun --nproc_per_node 4 --nnodes 2 --node_rank 0 --master_addr "172.31.9.143" --master_port 1238 train.py \
+    torchrun --nproc_per_node 4 --nnodes 2 --node_rank 0 --master_addr "172.31.9.143" --master_port 1234 train.py \
         --cuda \
         --data ../data/enwik8/ \
         --dataset enwik8 \
@@ -16,11 +16,11 @@ if [[ $1 == 'train' ]]; then
         --optim adam \
         --lr 0.00025 \
         --warmup_step 0 \
-        --max_step 400000 \
+        --max_step 110 \
         --tgt_len 512 \
         --mem_len 512 \
         --eval_tgt_len 128 \
-        --batch_size 2 \
+        --batch_size 8 \
         --multi_gpu \
         --moe --moe-num-expert 8 --moe-top-k 2 \
         --expert_parallel \
