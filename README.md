@@ -6,8 +6,9 @@ A prototype system of distributed MoE based on FastMoE.  [**In-progress work**]
 * [Contents](#contents)
 * [Installation](#installation)
 * [Usage](#usage)
-  * [Transformer-XL](#transformer-xl)
-  * [GPT-2](#gpt-2)
+  * [xl](####TransformerXL)
+  * [bert](#Bert)
+  * [gpt2](#GPT-2)
 
 ## Installation
 
@@ -27,17 +28,39 @@ git clone https://github.com/ChenfhCS/MoE.git
 ```
 cd MoE/ && pip -r requirements.txt
 ```
-#### Replace the modification into fastmoe
+#### Replace the modification into fastmoe and Transformers
 ```
-cd my_examples/
+cd examples/
 ```
-Change `path/to/MoE/my_example/fmoe` and `path/to/fmoe` to your path in ``scripts/fmoe_update.sh``, and then
+1. Change `path/to/fmoe` to your path in ``fmoe_update.sh``
+2. Change `path/to/transformers` to your path in ``fmoe_update.sh``
 ```
-bash fmoe_update.sh
+bash fmoe_update.sh && bash update_model.sh
 ```
 
 ## Usage
-
+### Run MoE on Single GPU
+#### TransformerXL
+```
+bash run.sh xl
+```
+#### Bert
+```
+bash run.sh bert
+```
+#### GPT-2
+```
+bash run.sh gpt2
+```
+### Run MoE on Multiple GPUs with Data Parallel
+```
+bash run_dp.sh bert
+```
+### Run MoE on Multiple GPUs with Expert Parallel
+```
+bash run_dist.sh bert
+```
+<!-- 
 ### Transformer-XL
 #### 1. Download dataset
 ```
@@ -110,4 +133,4 @@ source ~/.bashrc
 ### 3. Run example
 ```
 bash scripts/run_gpt_moe.sh train --work_dir=works/
-```
+``` -->
